@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Contact } from "@/components/marketing/contact";
 import { Faq } from "@/components/marketing/faq";
 import { Hero } from "@/components/marketing/hero";
@@ -20,3 +21,8 @@ export default async function MarketingPage() {
     </>
   );
 }
+=======
+import { HomeContent } from "@/components/marketing/page-content";
+import { getLocale } from "@/lib/i18n/get-dictionary";
+export default async function MarketingPage() { return <HomeContent locale={await getLocale()} />; }
+>>>>>>> f0c90fc (Latest Front End)
