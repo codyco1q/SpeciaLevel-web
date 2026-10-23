@@ -10,7 +10,7 @@ export function NavigationMotion() {
   const light = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const page = document.querySelector<HTMLElement>(".marketing-shell main");
-    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!matchMedia("(prefers-reduced-motion: reduce), (max-width: 800px)").matches) {
       page?.animate([{ opacity: 0, transform: "translateY(16px)", filter: "blur(4px)" }, { opacity: 1, transform: "translateY(0)", filter: "blur(0)" }], { duration: 550, easing: "cubic-bezier(.16,1,.3,1)" });
     }
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -22,7 +22,7 @@ export function NavigationMotion() {
       if (!anchor || !anchor.closest(".marketing-shell") || anchor.target || anchor.hasAttribute("download")) return;
       const url = new URL(anchor.href, location.href);
       if (url.origin !== location.origin || !["/", "/platform", "/services"].includes(url.pathname)) return;
-      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (matchMedia("(prefers-reduced-motion: reduce), (max-width: 800px)").matches) return;
       light.current?.animate([{ opacity: 0, transform: "translateX(-110%)" }, { opacity: .8, offset: .4 }, { opacity: 0, transform: "translateX(110%)" }], { duration: 650, easing: "ease-in-out" });
       if (url.pathname === pathname) return;
       event.preventDefault();

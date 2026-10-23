@@ -160,7 +160,7 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     const stops = footer ? [...sections, footer] : sections;
     const media = matchMedia("(prefers-reduced-motion: no-preference)");
     const mobile = matchMedia("(max-width: 800px)");
-    const nativeMobileScroll = () => pathname === "/platform" && mobile.matches;
+    const nativeMobileScroll = () => mobile.matches;
     const top = (el: HTMLElement) => el === sections[0] ? 0 : Math.max(0, el.getBoundingClientRect().top + window.scrollY);
     let lockedUntil = 0; let lastWheel = 0;
     const move = (direction: number) => {

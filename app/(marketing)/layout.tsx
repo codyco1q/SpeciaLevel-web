@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 
-<<<<<<< HEAD
-=======
 import "./marketing.css";
+import "./mobile.css";
 import { NavigationMotion } from "@/components/marketing/navigation-motion";
 import { LeadProvider } from "@/components/marketing/experience";
->>>>>>> f0c90fc (Latest Front End)
 import { Footer } from "@/components/marketing/footer";
 import { Navbar } from "@/components/marketing/navbar";
 import { getDictionary, getLocale } from "@/lib/i18n/get-dictionary";
@@ -67,13 +65,6 @@ export default async function MarketingLayout({
     <div
       lang={locale}
       dir={locale === "ar" ? "rtl" : "ltr"}
-<<<<<<< HEAD
-      className="flex min-h-screen flex-col bg-background text-foreground"
-    >
-      <Navbar dict={dict} locale={locale} />
-      <main className="flex-1">{children}</main>
-      <Footer dict={dict} />
-=======
       className="marketing-shell flex min-h-screen flex-col bg-background text-foreground"
     >
       <LeadProvider dict={dict} locale={locale}>
@@ -82,7 +73,6 @@ export default async function MarketingLayout({
       <main className="flex-1">{children}</main>
       <Footer dict={dict} locale={locale} />
       </LeadProvider>
->>>>>>> f0c90fc (Latest Front End)
     </div>
   );
 }

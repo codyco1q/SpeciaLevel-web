@@ -1,10 +1,6 @@
 "use client";
 
-<<<<<<< HEAD
-import { startTransition, useActionState, useMemo } from "react";
-=======
 import { startTransition, useActionState, useId, useMemo } from "react";
->>>>>>> f0c90fc (Latest Front End)
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -32,18 +28,12 @@ import {
 
 export function ContactForm({
   dict,
-<<<<<<< HEAD
-}: {
-  dict: Dictionary["contact"]["form"];
-}) {
-=======
   initialMessage = "",
 }: {
   dict: Dictionary["contact"]["form"];
   initialMessage?: string;
 }) {
   const formId = useId();
->>>>>>> f0c90fc (Latest Front End)
   const [state, formAction, isPending] = useActionState(
     submitMarketingLead,
     initialMarketingLeadState
@@ -62,11 +52,7 @@ export function ContactForm({
       name: "",
       email: "",
       company: "",
-<<<<<<< HEAD
-      bottleneck: "",
-=======
       bottleneck: initialMessage,
->>>>>>> f0c90fc (Latest Front End)
       packageOfInterest: "not-sure",
     },
   });
@@ -107,15 +93,9 @@ export function ContactForm({
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-<<<<<<< HEAD
-          <Label htmlFor="name">{dict.nameLabel}</Label>
-          <Input
-            id="name"
-=======
           <Label htmlFor={formId + "-name"}>{dict.nameLabel}</Label>
           <Input
             id={formId + "-name"}
->>>>>>> f0c90fc (Latest Front End)
             type="text"
             placeholder={dict.namePlaceholder}
             autoComplete="name"
@@ -128,15 +108,9 @@ export function ContactForm({
         </div>
 
         <div className="space-y-2">
-<<<<<<< HEAD
-          <Label htmlFor="email">{dict.emailLabel}</Label>
-          <Input
-            id="email"
-=======
           <Label htmlFor={formId + "-email"}>{dict.emailLabel}</Label>
           <Input
             id={formId + "-email"}
->>>>>>> f0c90fc (Latest Front End)
             type="email"
             placeholder={dict.emailPlaceholder}
             autoComplete="email"
@@ -150,15 +124,9 @@ export function ContactForm({
       </div>
 
       <div className="space-y-2">
-<<<<<<< HEAD
-        <Label htmlFor="company">{dict.companyLabel}</Label>
-        <Input
-          id="company"
-=======
         <Label htmlFor={formId + "-company"}>{dict.companyLabel}</Label>
         <Input
           id={formId + "-company"}
->>>>>>> f0c90fc (Latest Front End)
           type="text"
           placeholder={dict.companyPlaceholder}
           autoComplete="organization"
@@ -171,15 +139,9 @@ export function ContactForm({
       </div>
 
       <div className="space-y-2">
-<<<<<<< HEAD
-        <Label htmlFor="bottleneck">{dict.bottleneckLabel}</Label>
-        <Textarea
-          id="bottleneck"
-=======
         <Label htmlFor={formId + "-bottleneck"}>{dict.bottleneckLabel}</Label>
         <Textarea
           id={formId + "-bottleneck"}
->>>>>>> f0c90fc (Latest Front End)
           rows={4}
           placeholder={dict.bottleneckPlaceholder}
           aria-invalid={Boolean(fieldError("bottleneck"))}
@@ -193,22 +155,14 @@ export function ContactForm({
       </div>
 
       <div className="space-y-2">
-<<<<<<< HEAD
-        <Label id="package-label">{dict.packageLabel}</Label>
-=======
         <Label id={formId + "-package-label"}>{dict.packageLabel}</Label>
->>>>>>> f0c90fc (Latest Front End)
         <Controller
           name="packageOfInterest"
           control={control}
           render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
               <SelectTrigger
-<<<<<<< HEAD
-                aria-labelledby="package-label"
-=======
                 aria-labelledby={formId + "-package-label"}
->>>>>>> f0c90fc (Latest Front End)
                 size="md"
                 className="h-9 w-full"
               >

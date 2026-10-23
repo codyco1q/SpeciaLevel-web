@@ -64,7 +64,7 @@ export function HomeContent({ locale }: { locale: Locale }) {
   ];
   return <SectionScroll>
     <Scene id="top" hero visual={<PlatformVisual locale={locale} />} eyebrow={ar ? "منصة واحدة. احتمالات أكتر." : "ONE PLATFORM. MORE POSSIBILITIES."} title={ar ? "مساحة لأفكارك. نظام لكل شغلك." : "Room for your ideas. A system for everything else."} description={ar ? "اجمع فريقك وأدواتك ومهامك في مكان واحد. قلّل الشغل المتكرر وركّز على تطوير مشروعك." : "Bring your team, tools and workflows together. Spend less time on repetitive work and more time building your business."}>
-      <Actions locale={locale} /><p className="marketing-note">{ar ? "تجربة 14 يوم · إعداد مجاني · خدمات وقت ما تحتاجها" : "14-day trial · Free setup · Services when you need them"}</p>
+      <Actions locale={locale} servicesLink /><p className="marketing-note">{ar ? "تجربة 14 يوم · إعداد مجاني · خدمات وقت ما تحتاجها" : "14-day trial · Free setup · Services when you need them"}</p>
       <div className="marketing-orbit" aria-hidden="true">{[Bot, CalendarDays, Users, Workflow, Clock3].map((Icon, i) => <span key={i} style={{ animationDelay: `${i * -1.2}s` }}><Icon /><span>{["AI", "Calendar", "CRM", "Automation", "Time"][i]}</span></span>)}</div>
     </Scene>
     <Scene id="why-us" eyebrow={ar ? "ليه تختارنا" : "WHY CHOOSE US"} title={ar ? "ابدأ بثقة. جرّب بنفسك." : "Start with confidence. Try it for yourself."} description={ar ? "خد وقتك في استكشاف المنصة واتكلم معانا قبل ما تدفع أي حاجة." : "Take time to explore the platform and talk to us before paying a penny."}>

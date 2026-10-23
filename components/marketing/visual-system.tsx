@@ -10,6 +10,7 @@ export function PlatformVisual({ locale }: { locale: Locale }) {
   const ar = locale === "ar";
   const nodes = [[Building2,"Platform setup","إعداد المنصة",0],[Palette,"Branding","الهوية",1],[Megaphone,"Marketing","التسويق",2],[Code2,"Web & funnels","المواقع والصفحات",3],[Headphones,"Virtual teams","فرق الدعم",4],[Workflow,"Automation","الأتمتة",5]] as const;
   return <div className="platform-visual global-network" aria-label={ar ? "شبكة خدمات SpeciaLevel التفاعلية" : "Interactive SpeciaLevel service network"}>
+    <p className="mobile-network-heading">{ar ? "اكتشف اللي نقدر نساعدك فيه" : "Explore what we can help with"}</p>
     <div className="visual-coordinate"><span />SL / GLOBAL OPERATIONS NETWORK <small>LIVE</small></div>
     <svg className="network-map" viewBox="0 0 900 360" preserveAspectRatio="none" aria-hidden="true">
       <g className="world-wireframe">

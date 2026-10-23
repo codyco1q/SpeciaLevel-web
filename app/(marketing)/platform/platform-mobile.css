@@ -114,7 +114,7 @@
   .platform-product-page .workspace-task small { margin-inline-start: 26px; }
   .platform-product-page .marketing-grid { grid-template-columns: minmax(0, 1fr); }
   .marketing-shell:has(.platform-product-page) header nav { padding-inline: 10px; gap: 6px; }
-  .marketing-shell:has(.platform-product-page) header .marketing-logo { width: 100px; height: 32px; }
+  .marketing-shell:has(.platform-product-page) header .marketing-logo { width: 130px; height: 32px; }
   .marketing-shell:has(.platform-product-page) header nav > div { gap: 4px; }
-  .marketing-shell:has(.platform-product-page) header nav button { width: 30px; height: 32px; }
+  .marketing-shell:has(.platform-product-page) header nav button { width: 44px; height: 44px; }
 }
