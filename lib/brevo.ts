@@ -3,7 +3,7 @@ import "server-only";
 export interface ContactLeadPayload {
   name: string;
   email: string;
-  company: string;
+  company?: string;
   packageOfInterest: string;
   locale: "en" | "ar";
   submittedAt: string;

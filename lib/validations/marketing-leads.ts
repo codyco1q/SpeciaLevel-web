@@ -19,7 +19,7 @@ export interface MarketingLeadMessages {
   fieldNameMin: string;
   fieldNameMax: string;
   fieldEmailInvalid: string;
-  fieldCompanyMin: string;
+  fieldCompanyMin?: string;
   fieldCompanyMax: string;
 }
 
@@ -40,12 +40,12 @@ export function createMarketingLeadSchema(
       .trim()
       .min(2, messages.fieldNameMin)
       .max(120, messages.fieldNameMax),
-    email: z.string().trim().email(messages.fieldEmailInvalid),
     company: z
       .string()
       .trim()
-      .min(2, messages.fieldCompanyMin)
-      .max(150, messages.fieldCompanyMax),
+      .max(150, messages.fieldCompanyMax)
+      .optional(),
+    email: z.string().trim().email(messages.fieldEmailInvalid),
     packageOfInterest: z.enum([
       "marketing",
       "tech-and-automation",

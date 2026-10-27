@@ -188,7 +188,7 @@
       "namePlaceholder": "Jane Smith",
       "emailLabel": "Work email",
       "emailPlaceholder": "you@company.com",
-      "companyLabel": "Company",
+      "companyLabel": "Company (optional)",
       "companyPlaceholder": "Acme Inc.",
       "packageLabel": "Package of interest",
       "packagePlaceholder": "Select a package",

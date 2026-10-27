@@ -7,6 +7,7 @@ import {
   sendContactNotificationToAdmin,
   sendContactConfirmationToUser,
 } from "./brevo";
+import { sendContactNotificationToTelegram } from "./telegram";
 
 export type MarketingLead = MarketingLeadFormValues & {
   locale: "en" | "ar";
@@ -34,9 +35,9 @@ async function forwardLead(url: string, payload: object) {
   if (!response.ok) throw new Error(`Lead destination returned ${response.status}`);
 }
 
-async function forwardBrevo(task: Promise<{ success: boolean; error?: string }>) {
+async function forwardExternal(task: Promise<{ success: boolean; error?: string }>) {
   const result = await task;
-  if (!result.success) throw new Error(result.error || "Email delivery failed");
+  if (!result.success) throw new Error(result.error || "Delivery failed");
 }
 
 export async function deliverMarketingLead(lead: MarketingLead) {
@@ -45,8 +46,9 @@ export async function deliverMarketingLead(lead: MarketingLead) {
 
   const deliveries: Promise<unknown>[] = [
     saveMarketingLead(lead),
-    forwardBrevo(sendContactNotificationToAdmin(lead)),
-    forwardBrevo(sendContactConfirmationToUser(lead)),
+    forwardExternal(sendContactNotificationToAdmin(lead)),
+    forwardExternal(sendContactConfirmationToUser(lead)),
+    forwardExternal(sendContactNotificationToTelegram(lead)),
   ];
 
   if (apiUrl) deliveries.push(forwardLead(apiUrl, lead));

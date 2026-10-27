@@ -7,6 +7,7 @@ import {
   sendBookingNotificationToAdmin,
   sendBookingConfirmationToUser,
 } from "./brevo";
+import { sendBookingNotificationToTelegram } from "./telegram";
 
 export type Booking = BookingFormValues & {
   locale: "en" | "ar";
@@ -23,11 +24,17 @@ export async function saveBooking(booking: Booking) {
   );
 }
 
+async function forwardExternal(task: Promise<{ success: boolean; error?: string }>) {
+  const result = await task;
+  if (!result.success) throw new Error(result.error || "Delivery failed");
+}
+
 export async function deliverBooking(booking: Booking): Promise<boolean> {
   const deliveries: Promise<unknown>[] = [
     saveBooking(booking),
-    sendBookingNotificationToAdmin(booking),
-    sendBookingConfirmationToUser(booking),
+    forwardExternal(sendBookingNotificationToAdmin(booking)),
+    forwardExternal(sendBookingConfirmationToUser(booking)),
+    forwardExternal(sendBookingNotificationToTelegram(booking)),
   ];
 
   const results = await Promise.allSettled(deliveries);

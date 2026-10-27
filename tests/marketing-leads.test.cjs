@@ -54,6 +54,14 @@ test("valid lead is saved once, strips extra fields, and does not echo personal 
   assert.equal(saved[0].locale, "ar");
   assert.equal(saved[0].admin, undefined);
   assert.ok(!Number.isNaN(Date.parse(saved[0].submittedAt)));
+
+  // Test optional company field
+  const leadWithoutCompany = { name: "Solo Founder", email: "solo@example.com", packageOfInterest: "marketing" };
+  const response2 = await api.POST(request(leadWithoutCompany));
+  assert.equal(response2.status, 200);
+  assert.equal(saved.length, 2);
+  assert.equal(saved[1].name, "Solo Founder");
+  assert.equal(saved[1].company, undefined);
 });
 
 test("storage failure reports unavailable instead of success", async () => {
@@ -76,6 +84,9 @@ test("local-only delivery archives exactly once and makes no network requests", 
       "./brevo": {
         sendContactNotificationToAdmin: async () => ({ success: true }),
         sendContactConfirmationToUser: async () => ({ success: true }),
+      },
+      "./telegram": {
+        sendContactNotificationToTelegram: async () => ({ success: true }),
       },
     });
     assert.equal(await delivery.deliverMarketingLead({ ...valid, locale: "en", submittedAt: new Date().toISOString() }), true);
@@ -105,6 +116,9 @@ test("failed local storage plus a rejected webhook cannot report success", async
       "./brevo": {
         sendContactNotificationToAdmin: async () => ({ success: false, error: "Failed" }),
         sendContactConfirmationToUser: async () => ({ success: false, error: "Failed" }),
+      },
+      "./telegram": {
+        sendContactNotificationToTelegram: async () => ({ success: false, error: "Failed" }),
       },
     });
     assert.equal(await delivery.deliverMarketingLead({ ...valid, locale: "en", submittedAt: new Date().toISOString() }), false);

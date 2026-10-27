@@ -73,7 +73,7 @@ export function ContactForm({
     const formData = new FormData();
     formData.set("name", values.name);
     formData.set("email", values.email);
-    formData.set("company", values.company);
+    formData.set("company", values.company || "");
     formData.set("packageOfInterest", values.packageOfInterest);
     startTransition(() => {
       formAction(formData);
@@ -101,37 +101,20 @@ export function ContactForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor={formId + "-name"}>{dict.nameLabel}</Label>
-          <Input
-            id={formId + "-name"}
-            type="text"
-            placeholder={dict.namePlaceholder}
-            autoComplete="name"
-            aria-invalid={Boolean(fieldError("name"))}
-            {...register("name")}
-          />
-          {fieldError("name") && (
-            <p className="text-sm text-destructive">{fieldError("name")}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor={formId + "-email"}>{dict.emailLabel}</Label>
-          <Input
-            id={formId + "-email"}
-            type="email"
-            placeholder={dict.emailPlaceholder}
-            autoComplete="email"
-            aria-invalid={Boolean(fieldError("email"))}
-            {...register("email")}
-          />
-          {fieldError("email") && (
-            <p className="text-sm text-destructive">{fieldError("email")}</p>
-          )}
-        </div>
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor={formId + "-name"}>{dict.nameLabel}</Label>
+        <Input
+          id={formId + "-name"}
+          type="text"
+          placeholder={dict.namePlaceholder}
+          autoComplete="name"
+          aria-invalid={Boolean(fieldError("name"))}
+          {...register("name")}
+        />
+        {fieldError("name") && (
+          <p className="text-sm text-destructive">{fieldError("name")}</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -146,6 +129,21 @@ export function ContactForm({
         />
         {fieldError("company") && (
           <p className="text-sm text-destructive">{fieldError("company")}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={formId + "-email"}>{dict.emailLabel}</Label>
+        <Input
+          id={formId + "-email"}
+          type="email"
+          placeholder={dict.emailPlaceholder}
+          autoComplete="email"
+          aria-invalid={Boolean(fieldError("email"))}
+          {...register("email")}
+        />
+        {fieldError("email") && (
+          <p className="text-sm text-destructive">{fieldError("email")}</p>
         )}
       </div>
 

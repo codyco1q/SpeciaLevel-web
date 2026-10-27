@@ -206,30 +206,82 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     const nativeMobileScroll = () => mobile.matches;
     const top = (el: HTMLElement) => {
       const stops = getStops();
-      return el === stops[0] ? 0 : Math.max(0, el.getBoundingClientRect().top + window.scrollY);
+      return el === stops[0] ? 0 : Math.round(Math.max(0, el.getBoundingClientRect().top + window.scrollY));
     };
 
-    let lockedUntil = 0;
+    let isAnimating = false;
+    let gestureActive = false;
+    let targetIndex = -1;
+    let finishTimer: ReturnType<typeof setTimeout> | undefined;
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
     let accumulatedDelta = 0;
-    let resetTimer: ReturnType<typeof setTimeout> | undefined;
+    let lastWheelTime = 0;
+    let lastDeltas: number[] = [];
+    let lastDirection = 0;
+
+    const getActiveIndex = (stops: HTMLElement[]) => {
+      const scrollPos = window.scrollY;
+      let closest = 0;
+      let minDiff = Infinity;
+      stops.forEach((el, i) => {
+        const diff = Math.abs(top(el) - scrollPos);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = i;
+        }
+      });
+      return closest;
+    };
+
+    const startScrollTo = (nextIdx: number) => {
+      const stops = getStops();
+      if (nextIdx < 0 || nextIdx >= stops.length) return;
+
+      targetIndex = nextIdx;
+      isAnimating = true;
+      accumulatedDelta = 0;
+
+      const targetTop = top(stops[nextIdx]);
+      window.scrollTo({ top: targetTop, behavior: "smooth" });
+
+      if (finishTimer) clearTimeout(finishTimer);
+
+      const finish = () => {
+        if (!isAnimating) return;
+        isAnimating = false;
+        targetIndex = -1;
+        accumulatedDelta = 0;
+        window.removeEventListener("scroll", checkArrival);
+        window.removeEventListener("scrollend", finish);
+        if (finishTimer) clearTimeout(finishTimer);
+      };
+
+      const checkArrival = () => {
+        if (Math.abs(window.scrollY - targetTop) <= 4) {
+          finish();
+        }
+      };
+
+      window.addEventListener("scroll", checkArrival, { passive: true });
+      window.addEventListener("scrollend", finish, { passive: true });
+
+      // Smooth scroll safety fallback
+      finishTimer = setTimeout(finish, 450);
+    };
 
     const move = (direction: number) => {
+      if (isAnimating) return;
       const stops = getStops();
       if (!stops.length) return;
 
-      const position = window.scrollY;
-      const currentIdx = stops.findIndex((el, i) => {
-        const nextEl = stops[i + 1];
-        const elTop = top(el);
-        const nextTop = nextEl ? top(nextEl) : Infinity;
-        return position >= elTop - 30 && position < nextTop - 30;
-      });
-      const baseIdx = currentIdx !== -1 ? currentIdx : 0;
-      const nextIdx = Math.max(0, Math.min(stops.length - 1, baseIdx + direction));
-      if (nextIdx === baseIdx) return;
+      const currentIdx = getActiveIndex(stops);
+      const nextIdx = Math.max(0, Math.min(stops.length - 1, currentIdx + direction));
+      if (nextIdx === currentIdx) {
+        gestureActive = false;
+        return;
+      }
 
-      lockedUntil = performance.now() + 350;
-      window.scrollTo({ top: top(stops[nextIdx]), behavior: "smooth" });
+      startScrollTo(nextIdx);
     };
 
     const wheel = (e: WheelEvent) => {
@@ -248,18 +300,51 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       e.preventDefault();
 
       const now = performance.now();
-      if (now < lockedUntil) {
+      const absDelta = Math.abs(e.deltaY);
+      const dir = Math.sign(e.deltaY);
+
+      // Track time between wheel ticks to detect gesture boundaries
+      const timeSinceLastWheel = now - lastWheelTime;
+      lastWheelTime = now;
+
+      // If wheel was idle for 140ms or direction reversed, the previous gesture has ended
+      if (timeSinceLastWheel > 140 || (lastDirection !== 0 && dir !== lastDirection)) {
+        gestureActive = false;
+        accumulatedDelta = 0;
+        lastDeltas = [];
+      } else if (lastDeltas.length >= 4) {
+        // Detect a fresh deliberate user stroke while old inertia was decaying
+        const recentAvg = lastDeltas.slice(-4).reduce((a, b) => a + b, 0) / 4;
+        if (absDelta > recentAvg * 1.8 && absDelta > 30) {
+          gestureActive = false;
+          accumulatedDelta = 0;
+        }
+      }
+
+      lastDeltas.push(absDelta);
+      if (lastDeltas.length > 10) lastDeltas.shift();
+      lastDirection = dir;
+
+      // Reset idle timer: 140ms of silence resets gesture state
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        gestureActive = false;
+        accumulatedDelta = 0;
+        lastDeltas = [];
+        lastDirection = 0;
+      }, 140);
+
+      // Rule of 1 section per scroll:
+      // While animating OR while the current scroll gesture is active, do not trigger another section.
+      if (isAnimating || gestureActive) {
         accumulatedDelta = 0;
         return;
       }
 
-      if (resetTimer) clearTimeout(resetTimer);
-      resetTimer = setTimeout(() => { accumulatedDelta = 0; }, 140);
-
       accumulatedDelta += e.deltaY;
-      const SCROLL_THRESHOLD = 40;
+      const SCROLL_THRESHOLD = 60;
       if (Math.abs(accumulatedDelta) >= SCROLL_THRESHOLD) {
-        const dir = Math.sign(accumulatedDelta);
+        gestureActive = true;
         accumulatedDelta = 0;
         move(dir);
       }
@@ -272,10 +357,9 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       if (current && current.offsetHeight > innerHeight + 60) return;
       if (!["ArrowDown", "ArrowUp", "PageDown", "PageUp", " ", "Home", "End"].includes(e.key)) return;
       e.preventDefault();
-      if (performance.now() < lockedUntil) return;
+      if (isAnimating) return;
       if (e.key === "Home" || e.key === "End") {
-        lockedUntil = performance.now() + 350;
-        window.scrollTo({ top: top(stops[e.key === "Home" ? 0 : stops.length - 1]), behavior: "smooth" });
+        startScrollTo(e.key === "Home" ? 0 : stops.length - 1);
         return;
       }
       move(["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey) ? -1 : 1);
@@ -291,7 +375,7 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     const touchmove = (e: TouchEvent) => { if (pageTouch && e.touches.length === 1 && Math.abs(e.touches[0].clientY - touchStart) > Math.abs(e.touches[0].clientX - touchX)) e.preventDefault(); };
     const touchend = (e: TouchEvent) => {
       const delta = touchStart - (e.changedTouches[0]?.clientY ?? touchStart);
-      if (pageTouch && Math.abs(delta) > 25 && performance.now() >= lockedUntil) {
+      if (pageTouch && Math.abs(delta) > 30 && !isAnimating) {
         move(Math.sign(delta));
       }
       pageTouch = false;
@@ -317,7 +401,8 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     window.addEventListener("keydown", keyboard);
 
     return () => {
-      if (resetTimer) clearTimeout(resetTimer);
+      if (idleTimer) clearTimeout(idleTimer);
+      if (finishTimer) clearTimeout(finishTimer);
       window.removeEventListener("touchstart", touchstart);
       window.removeEventListener("touchmove", touchmove);
       window.removeEventListener("touchend", touchend);

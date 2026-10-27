@@ -74,6 +74,7 @@ test("booking delivery saves to local storage and handles Brevo notifications", 
   let writes = 0;
   let adminNotified = 0;
   let userConfirmed = 0;
+  let telegramNotified = 0;
 
   const bookings = loadSource("lib/bookings.ts", {
     "server-only": {},
@@ -84,6 +85,9 @@ test("booking delivery saves to local storage and handles Brevo notifications", 
     "./brevo": {
       sendBookingNotificationToAdmin: async () => { adminNotified++; return { success: true }; },
       sendBookingConfirmationToUser: async () => { userConfirmed++; return { success: true }; },
+    },
+    "./telegram": {
+      sendBookingNotificationToTelegram: async () => { telegramNotified++; return { success: true }; },
     },
   });
 
@@ -103,4 +107,5 @@ test("booking delivery saves to local storage and handles Brevo notifications", 
   assert.equal(writes, 1);
   assert.equal(adminNotified, 1);
   assert.equal(userConfirmed, 1);
+  assert.equal(telegramNotified, 1);
 });
