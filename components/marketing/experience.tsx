@@ -209,94 +209,63 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       return el === stops[0] ? 0 : Math.round(Math.max(0, el.getBoundingClientRect().top + window.scrollY));
     };
 
-    // The only reliable way to guarantee 1-section-per-scroll across all input devices
-    // (trackpad momentum, high-DPI mice, magic mouse) is a hard time-based lockout window
-    // that starts when any scroll is triggered and does not release until:
-    //   (a) the smooth-scroll animation is complete, AND
-    //   (b) wheel events have been quiet for at least IDLE_MS milliseconds.
-    // This is the same approach used by fullPage.js, Apple's product pages, and Stripe.
-    const SCROLL_ANIM_MS  = 500;  // smooth scroll animation cap
-    const IDLE_MS         = 400;  // wheel silence required after animation before re-enabling
-    const TOUCH_THRESHOLD = 35;   // px of finger travel to trigger on touch
+    // ─── 1-section-per-scroll rule ────────────────────────────────────────────
+    // Strategy: record a timestamp the moment a scroll fires. Any wheel event
+    // that arrives within LOCK_MS is silently ignored (preventDefault still runs
+    // to stop native scroll). No timers, no flags — just a single timestamp
+    // comparison. Cannot accidentally reset or extend itself.
+    //
+    // LOCK_MS must cover: smooth-scroll animation (~350ms) + trackpad inertia
+    // decay on macOS (~300ms). 700ms is the same value fullPage.js uses.
+    // ─────────────────────────────────────────────────────────────────────────
+    const LOCK_MS = 700;
+    let lastScrollAt = -(LOCK_MS + 1); // guarantee first scroll always fires
 
-    let locked = false;
-    let lockTimer: ReturnType<typeof setTimeout> | undefined;
-    let idleTimer: ReturnType<typeof setTimeout>  | undefined;
-    let lastWheelTime = 0;
+    const isLocked = () => performance.now() - lastScrollAt < LOCK_MS;
 
     const getActiveIndex = (stops: HTMLElement[]) => {
-      const scrollPos = window.scrollY;
-      let closest = 0;
-      let minDiff = Infinity;
+      const pos = window.scrollY;
+      let closest = 0, minDiff = Infinity;
       stops.forEach((el, i) => {
-        const diff = Math.abs(top(el) - scrollPos);
-        if (diff < minDiff) { minDiff = diff; closest = i; }
+        const d = Math.abs(top(el) - pos);
+        if (d < minDiff) { minDiff = d; closest = i; }
       });
       return closest;
     };
 
-    // Called when the scroll animation finishes (or times out).
-    // Starts the idle-silence requirement before the next scroll can fire.
-    const onAnimationEnd = () => {
-      if (idleTimer) clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        locked = false;
-      }, IDLE_MS);
-    };
-
-    const scrollTo = (nextIdx: number) => {
+    const doScroll = (nextIdx: number) => {
       const stops = getStops();
       if (nextIdx < 0 || nextIdx >= stops.length) return;
-
-      locked = true;
-      if (lockTimer) clearTimeout(lockTimer);
-      if (idleTimer)  clearTimeout(idleTimer);
-
-      const targetTop = top(stops[nextIdx]);
-      window.scrollTo({ top: targetTop, behavior: "smooth" });
-
-      // Method 1: scrollend event (modern browsers)
-      const onScrollEnd = () => {
-        window.removeEventListener("scrollend", onScrollEnd);
-        if (lockTimer) clearTimeout(lockTimer);
-        onAnimationEnd();
-      };
-      window.addEventListener("scrollend", onScrollEnd, { once: true, passive: true });
-
-      // Method 2: Safety fallback — assume animation done after SCROLL_ANIM_MS
-      lockTimer = setTimeout(() => {
-        window.removeEventListener("scrollend", onScrollEnd);
-        onAnimationEnd();
-      }, SCROLL_ANIM_MS);
+      lastScrollAt = performance.now();
+      window.scrollTo({ top: top(stops[nextIdx]), behavior: "smooth" });
     };
 
     const move = (direction: number) => {
-      if (locked) return;
+      if (isLocked()) return;
       const stops = getStops();
       if (!stops.length) return;
-      const currentIdx = getActiveIndex(stops);
-      const nextIdx = Math.max(0, Math.min(stops.length - 1, currentIdx + direction));
-      if (nextIdx === currentIdx) return;
-      scrollTo(nextIdx);
+      const cur = getActiveIndex(stops);
+      const next = Math.max(0, Math.min(stops.length - 1, cur + direction));
+      if (next === cur) return;
+      doScroll(next);
     };
 
     const wheel = (e: WheelEvent) => {
       if (nativeMobileScroll() || !media.matches || document.body.dataset.leadOpen || e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY) || !e.deltaY) return;
       const stops = getStops();
-      const scrollPos = window.scrollY;
-      const current = [...stops].reverse().find(el => top(el) <= scrollPos + 20) || stops[0];
+      const pos = window.scrollY;
+      const current = [...stops].reverse().find(el => top(el) <= pos + 20) || stops[0];
 
+      // For tall sections (overflow content), let native scroll work until edge
       if (current && current.offsetHeight > innerHeight + 60) {
-        const atBottom = scrollPos >= top(current) + current.offsetHeight - innerHeight - 16;
-        const atTop    = scrollPos <= top(current) + 16;
+        const atBottom = pos >= top(current) + current.offsetHeight - innerHeight - 16;
+        const atTop    = pos <= top(current) + 16;
         if (e.deltaY > 0 && !atBottom) return;
         if (e.deltaY < 0 && !atTop)    return;
       }
 
+      // Always prevent native scroll; our JS owns vertical paging
       e.preventDefault();
-      lastWheelTime = performance.now();
-
-      if (locked) return;
 
       move(Math.sign(e.deltaY));
     };
@@ -308,9 +277,9 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       if (current && current.offsetHeight > innerHeight + 60) return;
       if (!["ArrowDown", "ArrowUp", "PageDown", "PageUp", " ", "Home", "End"].includes(e.key)) return;
       e.preventDefault();
-      if (locked) return;
+      if (isLocked()) return;
       if (e.key === "Home" || e.key === "End") {
-        scrollTo(e.key === "Home" ? 0 : stops.length - 1);
+        doScroll(e.key === "Home" ? 0 : stops.length - 1);
         return;
       }
       move(["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey) ? -1 : 1);
@@ -326,7 +295,7 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     const touchmove = (e: TouchEvent) => { if (pageTouch && e.touches.length === 1 && Math.abs(e.touches[0].clientY - touchStart) > Math.abs(e.touches[0].clientX - touchX)) e.preventDefault(); };
     const touchend = (e: TouchEvent) => {
       const delta = touchStart - (e.changedTouches[0]?.clientY ?? touchStart);
-      if (pageTouch && Math.abs(delta) > TOUCH_THRESHOLD && !locked) {
+      if (pageTouch && Math.abs(delta) > 35 && !isLocked()) {
         move(Math.sign(delta));
       }
       pageTouch = false;
@@ -352,8 +321,7 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     window.addEventListener("keydown", keyboard);
 
     return () => {
-      if (idleTimer)  clearTimeout(idleTimer);
-      if (lockTimer) clearTimeout(lockTimer);
+      // No timers to clear — timestamp-based locking uses no resources
       window.removeEventListener("touchstart", touchstart);
       window.removeEventListener("touchmove", touchmove);
       window.removeEventListener("touchend", touchend);
