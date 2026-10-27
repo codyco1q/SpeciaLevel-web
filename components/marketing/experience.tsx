@@ -32,6 +32,22 @@ export function TrialButton({ locale }: { locale: Locale }) {
   return <Button asChild size="lg"><Link href="/platform">{label}<ArrowRight className="rtl:rotate-180" /></Link></Button>;
 }
 
+export function LearnMoreButton({ locale, targetId = "service-explorer" }: { locale: Locale; targetId?: string }) {
+  const ar = locale === "ar";
+  return <Button asChild size="lg" variant="outline">
+    <a href={`#${targetId}`} onClick={event => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      event.preventDefault();
+      target.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
+    }}>
+      {ar ? "اعرف أكتر" : "Learn More"}
+      <ArrowRight className="rtl:rotate-180" />
+    </a>
+  </Button>;
+}
+
 type TrialPlan = "level" | "pro" | "ultra";
 const trialPlans = [
   { id: "level" as const, name: "SpeciaLevel", icon: Rocket, audience: { en: "For independent operators", ar: "لأصحاب الأعمال المستقلين" }, features: { en: ["Connected workspace", "CRM, calendar and tasks", "Forms and invoicing", "Guided setup"], ar: ["مساحة عمل مترابطة", "العملاء والتقويم والمهام", "النماذج والفواتير", "إعداد بمساعدة الفريق"] } },
@@ -155,54 +171,115 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
   const pathname = usePathname();
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const sections = Array.from(root.current?.querySelectorAll<HTMLElement>("[data-scene]") || []);
-    const footer = document.querySelector<HTMLElement>("footer");
-    const stops = footer ? [...sections, footer] : sections;
+    const getStops = () => {
+      const currentSections = Array.from(root.current?.querySelectorAll<HTMLElement>("[data-scene]") || []);
+      const currentFooter = document.querySelector<HTMLElement>("footer");
+      return currentFooter ? [...currentSections, currentFooter] : currentSections;
+    };
     const media = matchMedia("(prefers-reduced-motion: no-preference)");
     const mobile = matchMedia("(max-width: 800px)");
     const nativeMobileScroll = () => mobile.matches;
-    const top = (el: HTMLElement) => el === sections[0] ? 0 : Math.max(0, el.getBoundingClientRect().top + window.scrollY);
-    let lockedUntil = 0; let lastWheel = 0;
+    const top = (el: HTMLElement) => {
+      const stops = getStops();
+      return el === stops[0] ? 0 : Math.max(0, el.getBoundingClientRect().top + window.scrollY);
+    };
+    let lockedUntil = 0;
+    let accumulatedDelta = 0;
+    let resetTimer: ReturnType<typeof setTimeout> | undefined;
+
     const move = (direction: number) => {
+      const stops = getStops();
       const position = window.scrollY;
-      const next = direction > 0 ? stops.find(el => top(el) > position + 3) : [...stops].reverse().find(el => top(el) < position - 3);
+      const next = direction > 0
+        ? stops.find(el => top(el) > position + 10)
+        : [...stops].reverse().find(el => top(el) < position - 10);
       if (!next) return;
-      lockedUntil = performance.now() + 950;
+      lockedUntil = performance.now() + 650;
       window.scrollTo({ top: top(next), behavior: "smooth" });
     };
+
     const wheel = (e: WheelEvent) => {
       if (nativeMobileScroll() || !media.matches || document.body.dataset.leadOpen || e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY) || !e.deltaY) return;
-      const current = [...stops].reverse().find(el => top(el) <= window.scrollY + 4);
-      if (current && current.offsetHeight > innerHeight + 4 && window.scrollY < top(current) + current.offsetHeight - innerHeight - 4 && e.deltaY > 0) return;
-      if (current && current.offsetHeight > innerHeight + 4 && window.scrollY > top(current) + 4 && e.deltaY < 0) return;
+      const stops = getStops();
+      const scrollPos = window.scrollY;
+      const current = [...stops].reverse().find(el => top(el) <= scrollPos + 20) || stops[0];
+
+      if (current && current.offsetHeight > innerHeight + 60) {
+        const atBottom = scrollPos >= top(current) + current.offsetHeight - innerHeight - 16;
+        const atTop = scrollPos <= top(current) + 16;
+        if (e.deltaY > 0 && !atBottom) return;
+        if (e.deltaY < 0 && !atTop) return;
+      }
+
       e.preventDefault();
-      const now = performance.now(); const gap = now - lastWheel; lastWheel = now;
-      if (now < lockedUntil || gap < 180) return;
-      move(Math.sign(e.deltaY));
+      const now = performance.now();
+      if (now < lockedUntil) {
+        accumulatedDelta = 0;
+        return;
+      }
+
+      if (resetTimer) clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { accumulatedDelta = 0; }, 180);
+
+      accumulatedDelta += e.deltaY;
+      const SCROLL_THRESHOLD = 30;
+      if (Math.abs(accumulatedDelta) >= SCROLL_THRESHOLD) {
+        const dir = Math.sign(accumulatedDelta);
+        accumulatedDelta = 0;
+        move(dir);
+      }
     };
+
     const keyboard = (e: KeyboardEvent) => {
       if (nativeMobileScroll() || !media.matches || document.body.dataset.leadOpen || (e.target as HTMLElement).closest("button,a,input,textarea,select,summary,[contenteditable]")) return;
+      const stops = getStops();
       const current = stops.find(el => top(el) <= scrollY + 4 && top(el) + el.offsetHeight > scrollY + 4);
-      if (current && current.offsetHeight > innerHeight + 4) return;
+      if (current && current.offsetHeight > innerHeight + 60) return;
       if (!["ArrowDown", "ArrowUp", "PageDown", "PageUp", " ", "Home", "End"].includes(e.key)) return;
       e.preventDefault(); if (performance.now() < lockedUntil) return;
       if (e.key === "Home" || e.key === "End") { window.scrollTo({top: top(stops[e.key === "Home" ? 0 : stops.length - 1]), behavior:"smooth"}); return; }
       move(["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey) ? -1 : 1);
     };
+
     let touchStart = 0; let touchX = 0; let pageTouch = false;
     const touchstart = (e: TouchEvent) => {
+      const stops = getStops();
       const current = stops.find(el => top(el) <= scrollY + 4 && top(el) + el.offsetHeight > scrollY + 4);
-      pageTouch = !nativeMobileScroll() && media.matches && !document.body.dataset.leadOpen && e.touches.length === 1 && !!current && current.offsetHeight <= innerHeight + 4 && !(e.target as HTMLElement).closest("button,a,input,textarea,select,summary");
+      pageTouch = !nativeMobileScroll() && media.matches && !document.body.dataset.leadOpen && e.touches.length === 1 && !!current && current.offsetHeight <= innerHeight + 60 && !(e.target as HTMLElement).closest("button,a,input,textarea,select,summary");
       touchStart = e.touches[0]?.clientY ?? 0; touchX = e.touches[0]?.clientX ?? 0;
     };
     const touchmove = (e: TouchEvent) => { if (pageTouch && e.touches.length === 1 && Math.abs(e.touches[0].clientY - touchStart) > Math.abs(e.touches[0].clientX - touchX)) e.preventDefault(); };
     const touchend = (e: TouchEvent) => { const delta = touchStart - (e.changedTouches[0]?.clientY ?? touchStart); if (pageTouch && Math.abs(delta) > 25 && performance.now() >= lockedUntil) move(Math.sign(delta)); pageTouch = false; };
-    window.addEventListener("touchstart", touchstart, {passive:true}); window.addEventListener("touchmove", touchmove, {passive:false}); window.addEventListener("touchend", touchend);
-    const observer = new IntersectionObserver(entries => { entries.forEach(entry => { if (entry.isIntersecting) root.current?.style.setProperty("--scene", String(sections.indexOf(entry.target as HTMLElement))); }); }, { threshold: 0.45 });
-    sections.forEach(section => observer.observe(section));
+
+    window.addEventListener("touchstart", touchstart, {passive:true});
+    window.addEventListener("touchmove", touchmove, {passive:false});
+    window.addEventListener("touchend", touchend);
+
+    const initialSections = Array.from(root.current?.querySelectorAll<HTMLElement>("[data-scene]") || []);
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const currentSections = Array.from(root.current?.querySelectorAll<HTMLElement>("[data-scene]") || []);
+          root.current?.style.setProperty("--scene", String(currentSections.indexOf(entry.target as HTMLElement)));
+        }
+      });
+    }, { threshold: 0.45 });
+    initialSections.forEach(section => observer.observe(section));
+
     document.documentElement.classList.add("marketing-snap");
-    window.addEventListener("wheel", wheel, { passive: false }); window.addEventListener("keydown", keyboard);
-    return () => { window.removeEventListener("touchstart", touchstart); window.removeEventListener("touchmove", touchmove); window.removeEventListener("touchend", touchend); observer.disconnect(); document.documentElement.classList.remove("marketing-snap"); window.removeEventListener("wheel", wheel); window.removeEventListener("keydown", keyboard); };
+    window.addEventListener("wheel", wheel, { passive: false });
+    window.addEventListener("keydown", keyboard);
+
+    return () => {
+      if (resetTimer) clearTimeout(resetTimer);
+      window.removeEventListener("touchstart", touchstart);
+      window.removeEventListener("touchmove", touchmove);
+      window.removeEventListener("touchend", touchend);
+      observer.disconnect();
+      document.documentElement.classList.remove("marketing-snap");
+      window.removeEventListener("wheel", wheel);
+      window.removeEventListener("keydown", keyboard);
+    };
   }, [pathname]);
   return <div ref={root} className={`marketing-home ${className}`}>
     <div aria-hidden="true" className="marketing-ambient">
