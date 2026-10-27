@@ -209,17 +209,19 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       return el === stops[0] ? 0 : Math.round(Math.max(0, el.getBoundingClientRect().top + window.scrollY));
     };
 
-    // ─── 1-section-per-scroll rule ────────────────────────────────────────────
-    // Strategy: record a timestamp the moment a scroll fires. Any wheel event
-    // that arrives within LOCK_MS is silently ignored (preventDefault still runs
-    // to stop native scroll). No timers, no flags — just a single timestamp
-    // comparison. Cannot accidentally reset or extend itself.
-    //
-    // LOCK_MS must cover: smooth-scroll animation (~350ms) + trackpad inertia
-    // decay on macOS (~300ms). 700ms is the same value fullPage.js uses.
+    // ─── 1-section-per-scroll engine (fullPage.js acceleration model) ─────────
+    // Trackpad momentum emits dozens of wheel events per swipe.
+    // 1. We keep a discrete targetIndex so in-flight animations never compute
+    //    against a moving window.scrollY.
+    // 2. We track rolling wheel delta averages (10 vs 70 samples) to only trigger
+    //    when the user actively accelerates or starts a new distinct gesture.
+    // 3. A hard lock window (LOCK_MS) prevents any action during active scroll.
     // ─────────────────────────────────────────────────────────────────────────
-    const LOCK_MS = 700;
-    let lastScrollAt = -(LOCK_MS + 1); // guarantee first scroll always fires
+    const LOCK_MS = 800;
+    let lastScrollAt = -(LOCK_MS + 1);
+    let targetIdx = -1;
+    let prevWheelTime = 0;
+    const scrollings: number[] = [];
 
     const isLocked = () => performance.now() - lastScrollAt < LOCK_MS;
 
@@ -233,20 +235,27 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       return closest;
     };
 
+    const getAverage = (elements: number[], count: number) => {
+      if (!elements.length) return 0;
+      const slice = elements.slice(-count);
+      const sum = slice.reduce((acc, val) => acc + val, 0);
+      return sum / slice.length;
+    };
+
     const doScroll = (nextIdx: number) => {
       const stops = getStops();
       if (nextIdx < 0 || nextIdx >= stops.length) return;
+      targetIdx = nextIdx;
       lastScrollAt = performance.now();
       window.scrollTo({ top: top(stops[nextIdx]), behavior: "smooth" });
     };
 
     const move = (direction: number) => {
-      if (isLocked()) return;
       const stops = getStops();
       if (!stops.length) return;
-      const cur = getActiveIndex(stops);
-      const next = Math.max(0, Math.min(stops.length - 1, cur + direction));
-      if (next === cur) return;
+      const base = targetIdx !== -1 ? targetIdx : getActiveIndex(stops);
+      const next = Math.max(0, Math.min(stops.length - 1, base + direction));
+      if (next === base) return;
       doScroll(next);
     };
 
@@ -264,10 +273,45 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
         if (e.deltaY < 0 && !atTop)    return;
       }
 
-      // Always prevent native scroll; our JS owns vertical paging
+      // Always prevent native scroll so the custom scroll owns the viewport
       e.preventDefault();
 
-      move(Math.sign(e.deltaY));
+      const curTime = performance.now();
+      const timeDiff = curTime - prevWheelTime;
+      prevWheelTime = curTime;
+
+      // If user paused scrolling for > 200ms, clear history (new gesture)
+      if (timeDiff > 200) {
+        scrollings.length = 0;
+      }
+
+      const val = Math.abs(e.deltaY);
+      scrollings.push(val);
+      if (scrollings.length > 100) {
+        scrollings.shift();
+      }
+
+      if (isLocked()) return;
+
+      // Sync targetIdx if the previous animation settled
+      if (targetIdx !== -1) {
+        const targetPos = top(stops[targetIdx]);
+        if (Math.abs(window.scrollY - targetPos) < 25) {
+          targetIdx = -1;
+        }
+      }
+
+      // Acceleration detection (same as fullPage.js):
+      // A new intentional swipe has higher recent velocity (averageEnd)
+      // than the rolling baseline (averageMiddle).
+      const averageEnd = getAverage(scrollings, 10);
+      const averageMiddle = getAverage(scrollings, 70);
+      const isAccelerating = scrollings.length < 5 || averageEnd >= averageMiddle;
+
+      // Minimum threshold to prevent micro-jitters
+      if (isAccelerating && val >= 5) {
+        move(Math.sign(e.deltaY));
+      }
     };
 
     const keyboard = (e: KeyboardEvent) => {
