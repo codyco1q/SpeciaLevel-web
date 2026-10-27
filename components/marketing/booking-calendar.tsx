@@ -96,10 +96,6 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
 
   const monthLabel = ar ? `${monthNamesAr[month]} ${year}` : `${monthNamesEn[month]} ${year}`;
 
-  const isCurrentMonthOrFuture =
-    year > today.getFullYear() ||
-    (year === today.getFullYear() && month >= today.getMonth());
-
   const canGoPrev =
     year > today.getFullYear() ||
     (year === today.getFullYear() && month > today.getMonth());
@@ -150,8 +146,8 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
   if (state.status === "success") {
     const details = state.bookingDetails;
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-6 py-12 text-center text-foreground animate-in fade-in duration-300">
-        <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+      <div className="flex flex-col items-center justify-center rounded-2xl booking-success-box px-6 py-12 text-center text-foreground animate-in fade-in duration-300">
+        <div className="flex size-14 items-center justify-center rounded-full booking-success-icon">
           <CheckCircle2 className="size-8" />
         </div>
         <h3 className="mt-4 text-2xl font-bold">
@@ -164,21 +160,21 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
         </p>
 
         {details && (
-          <div className="mt-6 w-full max-w-sm rounded-xl border border-border/80 bg-background/80 p-4 text-start text-sm shadow-sm backdrop-blur">
-            <div className="flex items-center gap-2 font-semibold text-emerald-400">
+          <div className="mt-6 w-full max-w-sm rounded-xl border border-border bg-card p-4 text-start text-sm shadow-sm backdrop-blur">
+            <div className="flex items-center gap-2 font-semibold text-[var(--tech-green)]">
               <Sparkles className="size-4" />
               <span>{details.firstName} {details.lastName}</span>
             </div>
             <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
               <p className="flex items-center gap-2 text-foreground font-medium">
-                <CalendarIcon className="size-3.5 text-emerald-400" />
+                <CalendarIcon className="size-3.5 text-[var(--tech-green)]" />
                 <span>{details.date}</span>
               </p>
               <p className="flex items-center gap-2 text-foreground font-medium">
-                <Clock className="size-3.5 text-emerald-400" />
+                <Clock className="size-3.5 text-[var(--tech-green)]" />
                 <span>{details.timeSlot}</span>
               </p>
-              <p className="pt-1 text-[11px] text-muted-foreground border-t border-border/50">
+              <p className="pt-1 text-[11px] text-muted-foreground border-t border-border/60">
                 {details.email} · {details.phone}
               </p>
             </div>
@@ -239,11 +235,11 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
-      <div className="rounded-xl border border-border/70 bg-card/60 p-4">
+      <div className="booking-calendar-card p-4">
         {/* Calendar Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-border/60">
+        <div className="flex items-center justify-between pb-3 booking-header">
           <div className="flex items-center gap-2">
-            <CalendarIcon className="size-4 text-emerald-400" />
+            <CalendarIcon className="size-4 text-[var(--tech-green)]" />
             <span className="font-semibold text-sm">{monthLabel}</span>
           </div>
           <div className="flex items-center gap-1">
@@ -295,12 +291,8 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
                 type="button"
                 disabled={disabled}
                 onClick={() => handleSelectDate(cell.day)}
-                className={`flex h-9 items-center justify-center rounded-lg text-xs font-medium transition-all ${
-                  cell.isSelected
-                    ? "bg-emerald-500 text-white font-bold shadow-md shadow-emerald-500/30 scale-105"
-                    : disabled
-                    ? "text-muted-foreground/30 cursor-not-allowed line-through decoration-muted-foreground/20"
-                    : "text-foreground hover:bg-accent/80 hover:text-accent-foreground cursor-pointer"
+                className={`booking-day-btn flex h-9 items-center justify-center rounded-lg text-xs font-medium cursor-pointer ${
+                  cell.isSelected ? "selected" : ""
                 }`}
               >
                 {cell.day}
@@ -317,7 +309,7 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
               : "Weekdays only (Monday – Friday)"}
           </span>
           {selectedDate && (
-            <span className="font-semibold text-emerald-400">
+            <span className="font-semibold text-[var(--tech-green)]">
               {selectedDate}
             </span>
           )}
@@ -327,17 +319,17 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
         )}
       </div>
 
-      {/* Time Slots (9am to 5pm ET) */}
+      {/* Time Slots (1 hour between each: 9am to 5pm ET) */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="flex items-center gap-1.5 text-xs font-semibold">
-            <Clock className="size-3.5 text-emerald-400" />
-            {ar ? "اختار الوقت المناسب (بتوقيت شرق أمريكا ET)" : "Available Time Slots (9 AM – 5 PM ET)"}
+            <Clock className="size-3.5 text-[var(--tech-green)]" />
+            {ar ? "المواعيد المتاحة (٩ ص – ٥ م بتوقيت ET)" : "Available Time Slots (9 AM – 5 PM ET)"}
           </Label>
-          <span className="text-[11px] text-muted-foreground">Eastern Time</span>
+          <span className="text-[11px] text-muted-foreground">1-Hour Intervals</span>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-44 overflow-y-auto p-1 rounded-xl border border-border/60 bg-card/40">
+        <div className="grid grid-cols-3 gap-2 p-1.5 rounded-xl border border-border bg-card/60">
           {BOOKING_TIME_SLOTS.map((slot) => {
             const isSelected = selectedSlot === slot;
             return (
@@ -345,10 +337,8 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
                 key={slot}
                 type="button"
                 onClick={() => handleSelectSlot(slot)}
-                className={`py-2 px-2 text-center rounded-md text-xs font-medium border transition-colors ${
-                  isSelected
-                    ? "bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold"
-                    : "border-border/60 hover:border-emerald-500/40 hover:bg-card/90 text-muted-foreground hover:text-foreground"
+                className={`booking-slot-btn py-2.5 px-2 text-center rounded-lg text-xs font-medium cursor-pointer ${
+                  isSelected ? "selected" : ""
                 }`}
               >
                 {slot}
@@ -449,14 +439,14 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
 
       {/* Selected Slot Summary Badge */}
       {selectedDate && selectedSlot && (
-        <div className="flex items-center justify-between rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-xs text-emerald-300">
-          <span className="flex items-center gap-1.5">
+        <div className="booking-summary-pill flex items-center justify-between rounded-lg px-3.5 py-2.5 text-xs">
+          <span className="flex items-center gap-1.5 font-medium">
             <Clock className="size-3.5" />
             <span>
               {selectedDate} · {selectedSlot}
             </span>
           </span>
-          <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">
+          <span className="text-[10px] uppercase font-bold tracking-wider opacity-90">
             {ar ? "الموعد المختار" : "Selected"}
           </span>
         </div>
@@ -465,7 +455,7 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
       <Button
         type="submit"
         size="lg"
-        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+        className="w-full"
         disabled={pending}
       >
         {pending ? (

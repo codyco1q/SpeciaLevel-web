@@ -2,21 +2,13 @@ import { z } from "zod";
 
 export const BOOKING_TIME_SLOTS = [
   "09:00 AM ET",
-  "09:30 AM ET",
   "10:00 AM ET",
-  "10:30 AM ET",
   "11:00 AM ET",
-  "11:30 AM ET",
   "12:00 PM ET",
-  "12:30 PM ET",
   "01:00 PM ET",
-  "01:30 PM ET",
   "02:00 PM ET",
-  "02:30 PM ET",
   "03:00 PM ET",
-  "03:30 PM ET",
   "04:00 PM ET",
-  "04:30 PM ET",
   "05:00 PM ET",
 ] as const;
 

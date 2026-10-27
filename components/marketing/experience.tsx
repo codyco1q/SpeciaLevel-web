@@ -209,56 +209,26 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       return el === stops[0] ? 0 : Math.max(0, el.getBoundingClientRect().top + window.scrollY);
     };
 
-    let isLocked = false;
-    let minLockUntil = 0;
+    let lockedUntil = 0;
     let accumulatedDelta = 0;
-    let wheelIdleTimer: ReturnType<typeof setTimeout> | undefined;
-    let targetIndex = -1;
-
-    const getCurrentIndex = (stops: HTMLElement[]) => {
-      const scrollPos = window.scrollY;
-      let closest = 0;
-      let minDiff = Infinity;
-      stops.forEach((el, i) => {
-        const diff = Math.abs(top(el) - scrollPos);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closest = i;
-        }
-      });
-      return closest;
-    };
-
-    const unlockWhenIdle = () => {
-      if (wheelIdleTimer) clearTimeout(wheelIdleTimer);
-      wheelIdleTimer = setTimeout(() => {
-        const now = performance.now();
-        if (now < minLockUntil) {
-          wheelIdleTimer = setTimeout(() => {
-            isLocked = false;
-            accumulatedDelta = 0;
-            targetIndex = -1;
-          }, minLockUntil - now);
-        } else {
-          isLocked = false;
-          accumulatedDelta = 0;
-          targetIndex = -1;
-        }
-      }, 160);
-    };
+    let resetTimer: ReturnType<typeof setTimeout> | undefined;
 
     const move = (direction: number) => {
       const stops = getStops();
       if (!stops.length) return;
 
-      const currentIdx = targetIndex !== -1 ? targetIndex : getCurrentIndex(stops);
-      const nextIdx = Math.max(0, Math.min(stops.length - 1, currentIdx + direction));
-      if (nextIdx === currentIdx && targetIndex !== -1) return;
+      const position = window.scrollY;
+      const currentIdx = stops.findIndex((el, i) => {
+        const nextEl = stops[i + 1];
+        const elTop = top(el);
+        const nextTop = nextEl ? top(nextEl) : Infinity;
+        return position >= elTop - 30 && position < nextTop - 30;
+      });
+      const baseIdx = currentIdx !== -1 ? currentIdx : 0;
+      const nextIdx = Math.max(0, Math.min(stops.length - 1, baseIdx + direction));
+      if (nextIdx === baseIdx) return;
 
-      targetIndex = nextIdx;
-      isLocked = true;
-      minLockUntil = performance.now() + 700;
-
+      lockedUntil = performance.now() + 350;
       window.scrollTo({ top: top(stops[nextIdx]), behavior: "smooth" });
     };
 
@@ -277,16 +247,17 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
 
       e.preventDefault();
 
-      if (isLocked) {
+      const now = performance.now();
+      if (now < lockedUntil) {
         accumulatedDelta = 0;
-        unlockWhenIdle();
         return;
       }
 
-      accumulatedDelta += e.deltaY;
-      unlockWhenIdle();
+      if (resetTimer) clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { accumulatedDelta = 0; }, 140);
 
-      const SCROLL_THRESHOLD = 30;
+      accumulatedDelta += e.deltaY;
+      const SCROLL_THRESHOLD = 40;
       if (Math.abs(accumulatedDelta) >= SCROLL_THRESHOLD) {
         const dir = Math.sign(accumulatedDelta);
         accumulatedDelta = 0;
@@ -301,17 +272,13 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       if (current && current.offsetHeight > innerHeight + 60) return;
       if (!["ArrowDown", "ArrowUp", "PageDown", "PageUp", " ", "Home", "End"].includes(e.key)) return;
       e.preventDefault();
-      if (isLocked || performance.now() < minLockUntil) return;
+      if (performance.now() < lockedUntil) return;
       if (e.key === "Home" || e.key === "End") {
-        targetIndex = e.key === "Home" ? 0 : stops.length - 1;
-        isLocked = true;
-        minLockUntil = performance.now() + 700;
-        window.scrollTo({ top: top(stops[targetIndex]), behavior: "smooth" });
-        unlockWhenIdle();
+        lockedUntil = performance.now() + 350;
+        window.scrollTo({ top: top(stops[e.key === "Home" ? 0 : stops.length - 1]), behavior: "smooth" });
         return;
       }
       move(["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey) ? -1 : 1);
-      unlockWhenIdle();
     };
 
     let touchStart = 0; let touchX = 0; let pageTouch = false;
@@ -324,9 +291,8 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     const touchmove = (e: TouchEvent) => { if (pageTouch && e.touches.length === 1 && Math.abs(e.touches[0].clientY - touchStart) > Math.abs(e.touches[0].clientX - touchX)) e.preventDefault(); };
     const touchend = (e: TouchEvent) => {
       const delta = touchStart - (e.changedTouches[0]?.clientY ?? touchStart);
-      if (pageTouch && Math.abs(delta) > 25 && !isLocked && performance.now() >= minLockUntil) {
+      if (pageTouch && Math.abs(delta) > 25 && performance.now() >= lockedUntil) {
         move(Math.sign(delta));
-        unlockWhenIdle();
       }
       pageTouch = false;
     };
@@ -351,7 +317,7 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     window.addEventListener("keydown", keyboard);
 
     return () => {
-      if (wheelIdleTimer) clearTimeout(wheelIdleTimer);
+      if (resetTimer) clearTimeout(resetTimer);
       window.removeEventListener("touchstart", touchstart);
       window.removeEventListener("touchmove", touchmove);
       window.removeEventListener("touchend", touchend);

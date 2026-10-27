@@ -103,6 +103,20 @@
 .marketing-modal-content { overflow-y:auto; overscroll-behavior:contain; padding:28px; }
 .marketing-phone-modal { max-width:500px; max-height:min(880px,94dvh); border:7px solid #07141b; border-top-width:7px; border-radius:38px; background:var(--card); box-shadow:0 0 0 1px color-mix(in srgb,var(--tech-green) 70%,transparent),0 28px 90px #0009,8px 10px 0 color-mix(in srgb,var(--tech-green) 10%,transparent); }
 .marketing-booking-modal { max-width:580px; }
+
+/* Booking Calendar Theme Integration */
+.booking-calendar-card { border:1px solid var(--border); background:color-mix(in srgb,var(--card) 92%,transparent); border-radius:14px; }
+.booking-header { border-bottom:1px solid var(--border); }
+.booking-day-btn { color:var(--foreground); transition:all .18s ease; }
+.booking-day-btn:hover:not(:disabled) { background:var(--tech-soft); color:var(--tech-green); border-color:var(--tech-green); }
+.booking-day-btn.selected { background:var(--tech-green) !important; color:var(--primary-foreground) !important; font-weight:700 !important; box-shadow:0 4px 14px color-mix(in srgb,var(--tech-green) 35%,transparent); transform:scale(1.05); }
+.booking-day-btn:disabled { opacity:.25; cursor:not-allowed; text-decoration:line-through; }
+.booking-slot-btn { border:1px solid var(--border); background:color-mix(in srgb,var(--card) 90%,transparent); color:var(--muted-foreground); transition:all .18s ease; }
+.booking-slot-btn:hover { border-color:color-mix(in srgb,var(--tech-green) 50%,var(--border)); background:var(--tech-soft); color:var(--foreground); }
+.booking-slot-btn.selected { border-color:var(--tech-green) !important; background:var(--tech-soft) !important; color:var(--tech-green) !important; font-weight:750 !important; box-shadow:0 0 0 1px var(--tech-green); }
+.booking-summary-pill { border:1px solid color-mix(in srgb,var(--tech-green) 35%,var(--border)); background:var(--tech-soft); color:var(--tech-green); }
+.booking-success-box { border:1px solid color-mix(in srgb,var(--tech-green) 40%,var(--border)); background:var(--tech-soft); color:var(--foreground); }
+.booking-success-icon { color:var(--tech-green); background:color-mix(in srgb,var(--tech-green) 20%,transparent); }
 .marketing-phone-modal::after { content:""; position:absolute; inset:43px 0 23px; z-index:0; pointer-events:none; opacity:.12; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%2347b6e8' stroke-width='.65'%3E%3Cpath d='M0 34h48v28h42v46h56v38h34M28 0v40h28M0 148h66v-23h43v55M142 0v52h38'/%3E%3C/g%3E%3Cg fill='%2347b6e8'%3E%3Ccircle cx='48' cy='34' r='2'/%3E%3Ccircle cx='90' cy='108' r='2'/%3E%3Ccircle cx='146' cy='146' r='2'/%3E%3C/g%3E%3C/svg%3E"); }
 .marketing-phone-modal .marketing-modal-content { position:relative; z-index:1; padding:24px 26px 28px; scrollbar-width:thin; scrollbar-color:var(--tech-green) transparent; }
 .phone-console-top { position:relative; z-index:2; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; min-height:42px; padding:0 18px; border-bottom:1px solid color-mix(in srgb,var(--tech-green) 32%,var(--border)); background:var(--background); color:var(--muted-foreground); font:7px var(--font-geist-mono),monospace; letter-spacing:.11em; }

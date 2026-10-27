@@ -88,8 +88,8 @@ export function ContactForm({
 
   if (state.status === "success") {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-6 py-16 text-center">
-        <CheckCircle2 className="size-10 text-emerald-400" />
+      <div className="flex flex-col items-center justify-center rounded-xl booking-success-box px-6 py-16 text-center">
+        <CheckCircle2 className="size-10 text-[var(--tech-green)]" />
         <h3 className="mt-4 text-xl font-semibold text-foreground">
           {dict.successTitle}
         </h3>
