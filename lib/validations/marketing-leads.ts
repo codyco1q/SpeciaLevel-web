@@ -4,20 +4,15 @@ import { z } from "zod";
  * Shared Zod schema for the SpeciaLevel marketing lead form.
  * Used both client-side (react-hook-form resolver) and server-side
  * (secure re-validation in the server action).
- *
- * i18n: validation messages are parameterized through
- * `createMarketingLeadSchema(messages)` so the contact form and the server
- * action can pass localized messages from the active dictionary. The
- * exported `marketingLeadSchema` keeps the English defaults as a fallback
- * for any caller that needs the schema without a locale.
  */
 
 export const MARKETING_PACKAGE_OPTIONS = [
-  { value: "not-sure", label: "Not sure yet — let's figure it out" },
-  { value: "audit", label: "Automation Audit & Blueprint" },
-  { value: "implementation", label: "Custom Systems Implementation" },
-  { value: "retainer", label: "Managed Operations & Retainer" },
+  { value: "marketing", label: "Marketing" },
+  { value: "tech-and-automation", label: "Tech and Automation" },
+  { value: "virtual-assistance", label: "Virtual Assistance" },
 ] as const;
+
+export type MarketingPackageValue = (typeof MARKETING_PACKAGE_OPTIONS)[number]["value"];
 
 /** Localized string messages consumed by the lead form schema. */
 export interface MarketingLeadMessages {
@@ -26,8 +21,6 @@ export interface MarketingLeadMessages {
   fieldEmailInvalid: string;
   fieldCompanyMin: string;
   fieldCompanyMax: string;
-  fieldBottleneckMin: string;
-  fieldBottleneckMax: string;
 }
 
 export const DEFAULT_MARKETING_LEAD_MESSAGES: MarketingLeadMessages = {
@@ -36,9 +29,6 @@ export const DEFAULT_MARKETING_LEAD_MESSAGES: MarketingLeadMessages = {
   fieldEmailInvalid: "Please enter a valid email address.",
   fieldCompanyMin: "Please enter your company name.",
   fieldCompanyMax: "Company must be 150 characters or fewer.",
-  fieldBottleneckMin:
-    "Give us a sentence or two about your current bottleneck or project scope.",
-  fieldBottleneckMax: "Project details must be 2000 characters or fewer.",
 };
 
 export function createMarketingLeadSchema(
@@ -56,23 +46,21 @@ export function createMarketingLeadSchema(
       .trim()
       .min(2, messages.fieldCompanyMin)
       .max(150, messages.fieldCompanyMax),
-    bottleneck: z
-      .string()
-      .trim()
-      .min(10, messages.fieldBottleneckMin)
-      .max(2000, messages.fieldBottleneckMax),
     packageOfInterest: z.enum([
-      "not-sure",
-      "audit",
-      "implementation",
-      "retainer",
+      "marketing",
+      "tech-and-automation",
+      "virtual-assistance",
+      "tech and automation",
+      "virtual assistance",
     ]),
   });
 }
 
 export const marketingLeadSchema = createMarketingLeadSchema();
 
-export type MarketingLeadFormValues = z.infer<ReturnType<typeof createMarketingLeadSchema>>;
+export type MarketingLeadFormValues = z.infer<
+  ReturnType<typeof createMarketingLeadSchema>
+>;
 
 /**
  * State returned by the submitMarketingLead server action.

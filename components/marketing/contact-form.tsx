@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { submitMarketingLead } from "@/lib/actions/marketing-leads";
 import type { Dictionary } from "@/lib/i18n/get-dictionary";
 import {
@@ -25,6 +24,18 @@ import {
   MARKETING_PACKAGE_OPTIONS,
   type MarketingLeadFormValues,
 } from "@/lib/validations/marketing-leads";
+
+function inferDefaultPackage(hint?: string): "marketing" | "tech-and-automation" | "virtual-assistance" {
+  if (!hint) return "marketing";
+  const lower = hint.toLowerCase();
+  if (lower.includes("tech") || lower.includes("auto") || lower.includes("platform") || lower.includes("system")) {
+    return "tech-and-automation";
+  }
+  if (lower.includes("assist") || lower.includes("virtual") || lower.includes("مساعد")) {
+    return "virtual-assistance";
+  }
+  return "marketing";
+}
 
 export function ContactForm({
   dict,
@@ -41,6 +52,8 @@ export function ContactForm({
 
   const schema = useMemo(() => createMarketingLeadSchema(dict), [dict]);
 
+  const defaultPackage = useMemo(() => inferDefaultPackage(initialMessage), [initialMessage]);
+
   const {
     register,
     control,
@@ -52,8 +65,7 @@ export function ContactForm({
       name: "",
       email: "",
       company: "",
-      bottleneck: initialMessage,
-      packageOfInterest: "not-sure",
+      packageOfInterest: defaultPackage,
     },
   });
 
@@ -62,7 +74,6 @@ export function ContactForm({
     formData.set("name", values.name);
     formData.set("email", values.email);
     formData.set("company", values.company);
-    formData.set("bottleneck", values.bottleneck);
     formData.set("packageOfInterest", values.packageOfInterest);
     startTransition(() => {
       formAction(formData);
@@ -139,22 +150,6 @@ export function ContactForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={formId + "-bottleneck"}>{dict.bottleneckLabel}</Label>
-        <Textarea
-          id={formId + "-bottleneck"}
-          rows={4}
-          placeholder={dict.bottleneckPlaceholder}
-          aria-invalid={Boolean(fieldError("bottleneck"))}
-          {...register("bottleneck")}
-        />
-        {fieldError("bottleneck") && (
-          <p className="text-sm text-destructive">
-            {fieldError("bottleneck")}
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-2">
         <Label id={formId + "-package-label"}>{dict.packageLabel}</Label>
         <Controller
           name="packageOfInterest"
@@ -164,14 +159,14 @@ export function ContactForm({
               <SelectTrigger
                 aria-labelledby={formId + "-package-label"}
                 size="md"
-                className="h-9 w-full"
+                className="h-10 w-full"
               >
                 <SelectValue placeholder={dict.packagePlaceholder} />
               </SelectTrigger>
               <SelectContent>
                 {MARKETING_PACKAGE_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {dict.packageOptions[option.value]}
+                    {dict.packageOptions?.[option.value] ?? option.label}
                   </SelectItem>
                 ))}
               </SelectContent>

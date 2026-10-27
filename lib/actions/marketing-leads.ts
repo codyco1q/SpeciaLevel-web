@@ -25,7 +25,7 @@ function parseFieldErrors(
   return fieldErrors;
 }
 
-/** Validate and deliver a lead, with a single local archive write. */
+/** Validate and deliver a lead, with local archive write and Brevo email notifications. */
 export async function submitMarketingLead(
   _prevState: MarketingLeadState,
   formData: FormData
@@ -34,7 +34,6 @@ export async function submitMarketingLead(
     name: formData.get("name"),
     email: formData.get("email"),
     company: formData.get("company"),
-    bottleneck: formData.get("bottleneck"),
     packageOfInterest: formData.get("packageOfInterest"),
   };
 

@@ -18,8 +18,10 @@ function loadSource(file, mocks = {}) {
 
 const schema = loadSource("lib/validations/marketing-leads.ts");
 const valid = {
-  name: "Test Visitor", email: "visitor@example.com", company: "Test Company",
-  bottleneck: "Please help us organize our workflows.", packageOfInterest: "not-sure",
+  name: "Test Visitor",
+  email: "visitor@example.com",
+  company: "Test Company",
+  packageOfInterest: "marketing",
 };
 
 function route(saveMarketingLead) {
@@ -36,7 +38,7 @@ test("malformed JSON and invalid lead fields never reach storage", async () => {
   const api = route(async () => { writes++; });
   const malformed = new Request("http://localhost/api/public/leads", { method: "POST", body: "{" });
   assert.equal((await api.POST(malformed)).status, 400);
-  for (const payload of [null, [], {}, { ...valid, email: "invalid" }, { ...valid, bottleneck: "short" }]) {
+  for (const payload of [null, [], {}, { ...valid, email: "invalid" }, { ...valid, name: "x" }, { ...valid, packageOfInterest: "invalid-package" }]) {
     assert.equal((await api.POST(request(payload))).status, 400);
   }
   assert.equal(writes, 0);
@@ -71,6 +73,10 @@ test("local-only delivery archives exactly once and makes no network requests", 
     const delivery = loadSource("lib/marketing-leads.ts", {
       "server-only": {},
       "node:fs/promises": { mkdir: async () => {}, appendFile: async () => { writes++; } },
+      "./brevo": {
+        sendContactNotificationToAdmin: async () => ({ success: true }),
+        sendContactConfirmationToUser: async () => ({ success: true }),
+      },
     });
     assert.equal(await delivery.deliverMarketingLead({ ...valid, locale: "en", submittedAt: new Date().toISOString() }), true);
     assert.equal(writes, 1);
@@ -96,6 +102,10 @@ test("failed local storage plus a rejected webhook cannot report success", async
     const delivery = loadSource("lib/marketing-leads.ts", {
       "server-only": {},
       "node:fs/promises": { mkdir: async () => {}, appendFile: async () => { throw new Error("Storage unavailable (test)"); } },
+      "./brevo": {
+        sendContactNotificationToAdmin: async () => ({ success: false, error: "Failed" }),
+        sendContactConfirmationToUser: async () => ({ success: false, error: "Failed" }),
+      },
     });
     assert.equal(await delivery.deliverMarketingLead({ ...valid, locale: "en", submittedAt: new Date().toISOString() }), false);
     assert.equal(completed, true);

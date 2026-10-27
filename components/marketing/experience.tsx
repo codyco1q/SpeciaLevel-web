@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight, Bot, Check, Rocket, Sparkles, Zap, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContactForm } from "./contact-form";
+import { BookingCalendar } from "./booking-calendar";
 import type { Dictionary, Locale } from "@/lib/i18n/get-dictionary";
 
 type Mode = "contact" | "booking" | "chat";
@@ -146,19 +147,43 @@ export function LeadProvider({ children, dict, locale }: { children: ReactNode; 
     document.addEventListener("keydown", keydown);
     return () => { document.removeEventListener("keydown", keydown); document.body.style.overflow = overflow; delete document.body.dataset.leadOpen; backgroundElement?.removeAttribute("inert"); previous?.focus(); };
   }, [mode, close]);
-  const title = mode === "booking" ? (ar ? "احجز مكالمتك" : "Book your call") : mode === "chat" ? (ar ? "إزاي نقدر نساعدك؟" : "How can we help?") : (ar ? "خلينا نتكلم عن مشروعك" : "Let’s talk about your business");
+  const title =
+    mode === "booking"
+      ? (ar ? "احجز موعد استشارتك" : "Book your consultation")
+      : mode === "chat"
+      ? (ar ? "إزاي نقدر نساعدك؟" : "How can we help?")
+      : (ar ? "خلينا نتكلم عن مشروعك" : "Let’s talk about your business");
   return <LeadContext.Provider value={open}>
     <div ref={background}>{children}<button className="marketing-chat" onClick={() => open("chat")} aria-label={ar ? "تواصل مع الفريق" : "Contact our team"} aria-haspopup="dialog" aria-expanded={mode === "chat"} aria-controls={mode === "chat" ? "lead-panel" : undefined}><span className="help-robot"><Bot size={28} /><i /></span><span className="help-label">{ar ? "محتاج مساعدة؟" : "Need help?"}</span><ArrowRight className="help-arrow" size={18} /></button></div>
     {mode && <div className={`marketing-overlay ${mode === "chat" ? "marketing-chat-overlay" : ""}`} onClick={e => { if (e.target === e.currentTarget) close(); }}>
-      <div id="lead-panel" ref={panel} role="dialog" aria-modal="true" aria-labelledby="lead-title" tabIndex={-1} className={`marketing-modal marketing-phone-modal ${mode === "chat" ? "marketing-chat-panel" : ""}`}>
+      <div id="lead-panel" ref={panel} role="dialog" aria-modal="true" aria-labelledby="lead-title" tabIndex={-1} className={`marketing-modal marketing-phone-modal ${mode === "chat" ? "marketing-chat-panel" : ""} ${mode === "booking" ? "marketing-booking-modal" : ""}`}>
         <div className="phone-console-top" aria-hidden="true"><span>SL://SECURE_LINK</span><i /><span className="phone-console-signal"><b /><b /><b /></span></div>
         <div className="marketing-modal-content">
           {mode === "chat" && <div className="chat-panel-identity"><Bot size={28} /><span>SpeciaLevel <small>{ar ? "فريق الدعم" : "Support team"}</small></span></div>}
           <div className="mb-5 flex items-start justify-between gap-4"><h2 id="lead-title" className="text-2xl font-bold">{title}</h2><Button variant="ghost" size="icon" onClick={close} aria-label={ar ? "إغلاق" : "Close"}><X /></Button></div>
-          {mode === "booking" && calendar ? <><iframe title={title} src={calendar} className="h-[60dvh] w-full rounded-xl border" /><a href={calendar} target="_blank" rel="noopener noreferrer" className="mt-4 block underline">{ar ? "افتح التقويم في نافذة جديدة" : "Open calendar in a new window"}</a></> : <>
-            <p className="mb-6 text-muted-foreground">{mode === "booking" ? (ar ? "ابعتلنا بياناتك والوقت المناسب ليك، والفريق هيتواصل لتأكيد المكالمة." : "Send your details and preferred time. Our team will follow up to arrange your call.") : (ar ? "سيب رسالتك والفريق هيرد عليك. تقدر تسأل قبل ما تدفع أي حاجة." : "Leave a message and our team will follow up. Ask us anything before you pay.")}</p>
-            <ContactForm key={mode + interest} dict={dict.contact.form} initialMessage={interest ? `${ar ? "الخدمة المطلوبة" : "Service of interest"}: ${interest}\n` : ""} />
-          </>}
+          {mode === "booking" ? (
+            <>
+              <p className="mb-4 text-sm text-muted-foreground">
+                {ar
+                  ? "اختار يوم عمل ووقتًا مناسبًا لك (من 9 ص إلى 5 م بتوقيت ET)، وسنؤكد موعدك فورًا."
+                  : "Select a weekday and time slot between 9:00 AM and 5:00 PM ET for your free consultation."}
+              </p>
+              <BookingCalendar locale={locale} onClose={close} />
+            </>
+          ) : (
+            <>
+              <p className="mb-6 text-muted-foreground">
+                {ar
+                  ? "سيب رسالتك والفريق هيرد عليك. تقدر تسأل قبل ما تدفع أي حاجة."
+                  : "Leave a message and our team will follow up. Ask us anything before you pay."}
+              </p>
+              <ContactForm
+                key={mode + interest}
+                dict={dict.contact.form}
+                initialMessage={interest ? `${ar ? "الخدمة المطلوبة" : "Service of interest"}: ${interest}\n` : ""}
+              />
+            </>
+          )}
         </div>
         <div className="phone-console-bottom" aria-hidden="true"><span /></div>
       </div>
@@ -183,19 +208,58 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       const stops = getStops();
       return el === stops[0] ? 0 : Math.max(0, el.getBoundingClientRect().top + window.scrollY);
     };
-    let lockedUntil = 0;
+
+    let isLocked = false;
+    let minLockUntil = 0;
     let accumulatedDelta = 0;
-    let resetTimer: ReturnType<typeof setTimeout> | undefined;
+    let wheelIdleTimer: ReturnType<typeof setTimeout> | undefined;
+    let targetIndex = -1;
+
+    const getCurrentIndex = (stops: HTMLElement[]) => {
+      const scrollPos = window.scrollY;
+      let closest = 0;
+      let minDiff = Infinity;
+      stops.forEach((el, i) => {
+        const diff = Math.abs(top(el) - scrollPos);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = i;
+        }
+      });
+      return closest;
+    };
+
+    const unlockWhenIdle = () => {
+      if (wheelIdleTimer) clearTimeout(wheelIdleTimer);
+      wheelIdleTimer = setTimeout(() => {
+        const now = performance.now();
+        if (now < minLockUntil) {
+          wheelIdleTimer = setTimeout(() => {
+            isLocked = false;
+            accumulatedDelta = 0;
+            targetIndex = -1;
+          }, minLockUntil - now);
+        } else {
+          isLocked = false;
+          accumulatedDelta = 0;
+          targetIndex = -1;
+        }
+      }, 160);
+    };
 
     const move = (direction: number) => {
       const stops = getStops();
-      const position = window.scrollY;
-      const next = direction > 0
-        ? stops.find(el => top(el) > position + 10)
-        : [...stops].reverse().find(el => top(el) < position - 10);
-      if (!next) return;
-      lockedUntil = performance.now() + 650;
-      window.scrollTo({ top: top(next), behavior: "smooth" });
+      if (!stops.length) return;
+
+      const currentIdx = targetIndex !== -1 ? targetIndex : getCurrentIndex(stops);
+      const nextIdx = Math.max(0, Math.min(stops.length - 1, currentIdx + direction));
+      if (nextIdx === currentIdx && targetIndex !== -1) return;
+
+      targetIndex = nextIdx;
+      isLocked = true;
+      minLockUntil = performance.now() + 700;
+
+      window.scrollTo({ top: top(stops[nextIdx]), behavior: "smooth" });
     };
 
     const wheel = (e: WheelEvent) => {
@@ -212,16 +276,16 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       }
 
       e.preventDefault();
-      const now = performance.now();
-      if (now < lockedUntil) {
+
+      if (isLocked) {
         accumulatedDelta = 0;
+        unlockWhenIdle();
         return;
       }
 
-      if (resetTimer) clearTimeout(resetTimer);
-      resetTimer = setTimeout(() => { accumulatedDelta = 0; }, 180);
-
       accumulatedDelta += e.deltaY;
+      unlockWhenIdle();
+
       const SCROLL_THRESHOLD = 30;
       if (Math.abs(accumulatedDelta) >= SCROLL_THRESHOLD) {
         const dir = Math.sign(accumulatedDelta);
@@ -236,9 +300,18 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       const current = stops.find(el => top(el) <= scrollY + 4 && top(el) + el.offsetHeight > scrollY + 4);
       if (current && current.offsetHeight > innerHeight + 60) return;
       if (!["ArrowDown", "ArrowUp", "PageDown", "PageUp", " ", "Home", "End"].includes(e.key)) return;
-      e.preventDefault(); if (performance.now() < lockedUntil) return;
-      if (e.key === "Home" || e.key === "End") { window.scrollTo({top: top(stops[e.key === "Home" ? 0 : stops.length - 1]), behavior:"smooth"}); return; }
+      e.preventDefault();
+      if (isLocked || performance.now() < minLockUntil) return;
+      if (e.key === "Home" || e.key === "End") {
+        targetIndex = e.key === "Home" ? 0 : stops.length - 1;
+        isLocked = true;
+        minLockUntil = performance.now() + 700;
+        window.scrollTo({ top: top(stops[targetIndex]), behavior: "smooth" });
+        unlockWhenIdle();
+        return;
+      }
       move(["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey) ? -1 : 1);
+      unlockWhenIdle();
     };
 
     let touchStart = 0; let touchX = 0; let pageTouch = false;
@@ -249,7 +322,14 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       touchStart = e.touches[0]?.clientY ?? 0; touchX = e.touches[0]?.clientX ?? 0;
     };
     const touchmove = (e: TouchEvent) => { if (pageTouch && e.touches.length === 1 && Math.abs(e.touches[0].clientY - touchStart) > Math.abs(e.touches[0].clientX - touchX)) e.preventDefault(); };
-    const touchend = (e: TouchEvent) => { const delta = touchStart - (e.changedTouches[0]?.clientY ?? touchStart); if (pageTouch && Math.abs(delta) > 25 && performance.now() >= lockedUntil) move(Math.sign(delta)); pageTouch = false; };
+    const touchend = (e: TouchEvent) => {
+      const delta = touchStart - (e.changedTouches[0]?.clientY ?? touchStart);
+      if (pageTouch && Math.abs(delta) > 25 && !isLocked && performance.now() >= minLockUntil) {
+        move(Math.sign(delta));
+        unlockWhenIdle();
+      }
+      pageTouch = false;
+    };
 
     window.addEventListener("touchstart", touchstart, {passive:true});
     window.addEventListener("touchmove", touchmove, {passive:false});
@@ -271,7 +351,7 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     window.addEventListener("keydown", keyboard);
 
     return () => {
-      if (resetTimer) clearTimeout(resetTimer);
+      if (wheelIdleTimer) clearTimeout(wheelIdleTimer);
       window.removeEventListener("touchstart", touchstart);
       window.removeEventListener("touchmove", touchmove);
       window.removeEventListener("touchend", touchend);

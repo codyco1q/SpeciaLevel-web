@@ -3,6 +3,10 @@ import "server-only";
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import type { MarketingLeadFormValues } from "./validations/marketing-leads";
+import {
+  sendContactNotificationToAdmin,
+  sendContactConfirmationToUser,
+} from "./brevo";
 
 export type MarketingLead = MarketingLeadFormValues & {
   locale: "en" | "ar";
@@ -30,14 +34,26 @@ async function forwardLead(url: string, payload: object) {
   if (!response.ok) throw new Error(`Lead destination returned ${response.status}`);
 }
 
+async function forwardBrevo(task: Promise<{ success: boolean; error?: string }>) {
+  const result = await task;
+  if (!result.success) throw new Error(result.error || "Email delivery failed");
+}
+
 export async function deliverMarketingLead(lead: MarketingLead) {
-  // Use an explicit ingestion URL, never the marketing site's own default URL.
   const apiUrl = process.env.MARKETING_LEADS_API_URL;
   const webhookUrl = process.env.MARKETING_LEADS_WEBHOOK_URL;
-  const deliveries: Promise<void>[] = [saveMarketingLead(lead)];
+
+  const deliveries: Promise<unknown>[] = [
+    saveMarketingLead(lead),
+    forwardBrevo(sendContactNotificationToAdmin(lead)),
+    forwardBrevo(sendContactConfirmationToUser(lead)),
+  ];
+
   if (apiUrl) deliveries.push(forwardLead(apiUrl, lead));
   if (webhookUrl) {
-    deliveries.push(forwardLead(webhookUrl, { event: "marketing.lead_created", ...lead }));
+    deliveries.push(
+      forwardLead(webhookUrl, { event: "marketing.lead_created", ...lead })
+    );
   }
 
   const results = await Promise.allSettled(deliveries);
@@ -46,5 +62,7 @@ export async function deliverMarketingLead(lead: MarketingLead) {
       console.error("[marketing-leads] Delivery failed:", result.reason);
     }
   });
-  return results.some(result => result.status === "fulfilled");
+
+  // Local storage (index 0) or any valid destination fulfilling marks success
+  return results[0].status === "fulfilled" || results.some(r => r.status === "fulfilled");
 }

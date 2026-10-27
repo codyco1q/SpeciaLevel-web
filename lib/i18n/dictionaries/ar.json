@@ -190,15 +190,12 @@
       "emailPlaceholder": "you@company.com",
       "companyLabel": "الشركة",
       "companyPlaceholder": "شركتك",
-      "bottleneckLabel": "المختنق الحالي / نطاق المشروع",
-      "bottleneckPlaceholder": "أخبرنا بما يبطئ عملياتك — إدخال بيانات يدوي، أدوات منفصلة، متابعات ضائعة…",
       "packageLabel": "الباقة المهتم بها",
       "packagePlaceholder": "اختر باقة",
       "packageOptions": {
-        "not-sure": "لست متأكدًا بعد — لنجدها معًا",
-        "audit": "تدقيق الأتمتة وخارطة الطريق",
-        "implementation": "تنفيذ الأنظمة المخصّصة",
-        "retainer": "الإدارة المدارة والاشتراك الشهري"
+        "marketing": "التسويق",
+        "tech-and-automation": "التقنية والأتمتة",
+        "virtual-assistance": "المساعدون الافتراضيون"
       },
       "submit": "احجز استشارتي",
       "sending": "جارٍ الإرسال…",
@@ -211,9 +208,7 @@
       "fieldNameMax": "يجب ألا يتجاوز الاسم ١٢٠ حرفًا.",
       "fieldEmailInvalid": "يرجى إدخال بريد إلكتروني صحيح.",
       "fieldCompanyMin": "يرجى إدخال اسم شركتك.",
-      "fieldCompanyMax": "يجب ألا يتجاوز اسم الشركة ١٥٠ حرفًا.",
-      "fieldBottleneckMin": "اكتب جملة أو جملتين عن مختنقك الحالي أو نطاق المشروع.",
-      "fieldBottleneckMax": "يجب ألا تتجاوز تفاصيل المشروع ٢٠٠٠ حرف."
+      "fieldCompanyMax": "يجب ألا يتجاوز اسم الشركة ١٥٠ حرفًا."
     }
   },
   "footer": {
@@ -1818,5 +1813,33 @@
       "analytics": "التحليلات",
       "analyticsDescription": "رؤى الأعمال والتقارير ومؤشرات الأداء."
     }
+  },
+  "booking": {
+    "title": "احجز موعد استشارة",
+    "subtitle": "اختر يوم عمل ووقتًا مناسبًا (٩ ص – ٥ م بتوقيت ET) لمحادثتك الاستكشافية المجانية.",
+    "firstNameLabel": "الاسم الأول",
+    "firstNamePlaceholder": "أحمد",
+    "lastNameLabel": "اسم العائلة",
+    "lastNamePlaceholder": "محمد",
+    "emailLabel": "البريد الإلكتروني للعمل",
+    "emailPlaceholder": "you@company.com",
+    "phoneLabel": "رقم الهاتف",
+    "phonePlaceholder": "+20 100 000 0000",
+    "dateLabel": "اختر التاريخ",
+    "timeLabel": "اختر الوقت (بتوقيت شرق أمريكا ET)",
+    "submit": "تأكيد موعد الاستشارة",
+    "sending": "جارٍ تأكيد الموعد…",
+    "successTitle": "تم تأكيد موعد الاستشارة!",
+    "successBody": "شكرًا لك! لقد أرسلنا تفاصيل الموعد وتأكيد التقويم إلى بريدك الإلكتروني.",
+    "errorTitle": "خطأ في حجز الموعد",
+    "errorMessage": "تعذّر حفظ موعد الاستشارة الآن. يرجى المحاولة مرة أخرى أو مراسلتنا عبر البريد الإلكتروني.",
+    "firstNameMin": "يرجى إدخال اسمك الأول.",
+    "lastNameMin": "يرجى إدخال اسم العائلة.",
+    "emailInvalid": "يرجى إدخال بريد إلكتروني صحيح.",
+    "phoneInvalid": "يرجى إدخال رقم هاتف صحيح.",
+    "dateRequired": "يرجى اختيار تاريخ الموعد.",
+    "dateWeekend": "مواعيد الاستشارات متاحة في أيام العمل فقط (الإثنين – الجمعة).",
+    "datePast": "يرجى اختيار موعد قادم.",
+    "timeSlotRequired": "يرجى اختيار الوقت المناسب."
   }
 }

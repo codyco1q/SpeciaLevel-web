@@ -190,15 +190,12 @@
       "emailPlaceholder": "you@company.com",
       "companyLabel": "Company",
       "companyPlaceholder": "Acme Inc.",
-      "bottleneckLabel": "Current bottleneck / project scope",
-      "bottleneckPlaceholder": "Tell us what is slowing your operations down — manual data entry, disconnected tools, missed follow-ups…",
       "packageLabel": "Package of interest",
       "packagePlaceholder": "Select a package",
       "packageOptions": {
-        "not-sure": "Not sure yet — let's figure it out",
-        "audit": "Automation Audit & Blueprint",
-        "implementation": "Custom Systems Implementation",
-        "retainer": "Managed Operations & Retainer"
+        "marketing": "Marketing",
+        "tech-and-automation": "Tech & Automation",
+        "virtual-assistance": "Virtual Assistance"
       },
       "submit": "Book my consultation",
       "sending": "Sending…",
@@ -211,9 +208,7 @@
       "fieldNameMax": "Name must be 120 characters or fewer.",
       "fieldEmailInvalid": "Please enter a valid email address.",
       "fieldCompanyMin": "Please enter your company name.",
-      "fieldCompanyMax": "Company must be 150 characters or fewer.",
-      "fieldBottleneckMin": "Give us a sentence or two about your current bottleneck or project scope.",
-      "fieldBottleneckMax": "Project details must be 2000 characters or fewer."
+      "fieldCompanyMax": "Company must be 150 characters or fewer."
     }
   },
   "footer": {
@@ -1818,5 +1813,33 @@
       "analytics": "Analytics",
       "analyticsDescription": "Business insights, reports, and KPIs."
     }
+  },
+  "booking": {
+    "title": "Book a Consultation",
+    "subtitle": "Select a weekday and time slot (9 AM – 5 PM ET) for your free discovery consultation.",
+    "firstNameLabel": "First name",
+    "firstNamePlaceholder": "Jane",
+    "lastNameLabel": "Last name",
+    "lastNamePlaceholder": "Smith",
+    "emailLabel": "Work email",
+    "emailPlaceholder": "you@company.com",
+    "phoneLabel": "Phone number",
+    "phonePlaceholder": "+1 (555) 000-0000",
+    "dateLabel": "Select a date",
+    "timeLabel": "Select a time slot (ET)",
+    "submit": "Confirm Consultation",
+    "sending": "Confirming Consultation…",
+    "successTitle": "Consultation Confirmed!",
+    "successBody": "Thank you! We have sent a calendar confirmation and details to your email.",
+    "errorTitle": "Unable to book call",
+    "errorMessage": "Something went wrong scheduling your consultation. Please try again or email us directly.",
+    "firstNameMin": "Please enter your first name.",
+    "lastNameMin": "Please enter your last name.",
+    "emailInvalid": "Please enter a valid email address.",
+    "phoneInvalid": "Please enter a valid phone number.",
+    "dateRequired": "Please select a date.",
+    "dateWeekend": "Consultations are available on weekdays only (Monday – Friday).",
+    "datePast": "Please select an upcoming date.",
+    "timeSlotRequired": "Please select a time slot."
   }
 }
