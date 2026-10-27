@@ -209,15 +209,20 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       return el === stops[0] ? 0 : Math.round(Math.max(0, el.getBoundingClientRect().top + window.scrollY));
     };
 
-    let isAnimating = false;
-    let gestureActive = false;
-    let targetIndex = -1;
-    let finishTimer: ReturnType<typeof setTimeout> | undefined;
-    let idleTimer: ReturnType<typeof setTimeout> | undefined;
-    let accumulatedDelta = 0;
+    // The only reliable way to guarantee 1-section-per-scroll across all input devices
+    // (trackpad momentum, high-DPI mice, magic mouse) is a hard time-based lockout window
+    // that starts when any scroll is triggered and does not release until:
+    //   (a) the smooth-scroll animation is complete, AND
+    //   (b) wheel events have been quiet for at least IDLE_MS milliseconds.
+    // This is the same approach used by fullPage.js, Apple's product pages, and Stripe.
+    const SCROLL_ANIM_MS  = 500;  // smooth scroll animation cap
+    const IDLE_MS         = 400;  // wheel silence required after animation before re-enabling
+    const TOUCH_THRESHOLD = 35;   // px of finger travel to trigger on touch
+
+    let locked = false;
+    let lockTimer: ReturnType<typeof setTimeout> | undefined;
+    let idleTimer: ReturnType<typeof setTimeout>  | undefined;
     let lastWheelTime = 0;
-    let lastDeltas: number[] = [];
-    let lastDirection = 0;
 
     const getActiveIndex = (stops: HTMLElement[]) => {
       const scrollPos = window.scrollY;
@@ -225,63 +230,54 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       let minDiff = Infinity;
       stops.forEach((el, i) => {
         const diff = Math.abs(top(el) - scrollPos);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closest = i;
-        }
+        if (diff < minDiff) { minDiff = diff; closest = i; }
       });
       return closest;
     };
 
-    const startScrollTo = (nextIdx: number) => {
+    // Called when the scroll animation finishes (or times out).
+    // Starts the idle-silence requirement before the next scroll can fire.
+    const onAnimationEnd = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        locked = false;
+      }, IDLE_MS);
+    };
+
+    const scrollTo = (nextIdx: number) => {
       const stops = getStops();
       if (nextIdx < 0 || nextIdx >= stops.length) return;
 
-      targetIndex = nextIdx;
-      isAnimating = true;
-      accumulatedDelta = 0;
+      locked = true;
+      if (lockTimer) clearTimeout(lockTimer);
+      if (idleTimer)  clearTimeout(idleTimer);
 
       const targetTop = top(stops[nextIdx]);
       window.scrollTo({ top: targetTop, behavior: "smooth" });
 
-      if (finishTimer) clearTimeout(finishTimer);
-
-      const finish = () => {
-        if (!isAnimating) return;
-        isAnimating = false;
-        targetIndex = -1;
-        accumulatedDelta = 0;
-        window.removeEventListener("scroll", checkArrival);
-        window.removeEventListener("scrollend", finish);
-        if (finishTimer) clearTimeout(finishTimer);
+      // Method 1: scrollend event (modern browsers)
+      const onScrollEnd = () => {
+        window.removeEventListener("scrollend", onScrollEnd);
+        if (lockTimer) clearTimeout(lockTimer);
+        onAnimationEnd();
       };
+      window.addEventListener("scrollend", onScrollEnd, { once: true, passive: true });
 
-      const checkArrival = () => {
-        if (Math.abs(window.scrollY - targetTop) <= 4) {
-          finish();
-        }
-      };
-
-      window.addEventListener("scroll", checkArrival, { passive: true });
-      window.addEventListener("scrollend", finish, { passive: true });
-
-      // Smooth scroll safety fallback
-      finishTimer = setTimeout(finish, 450);
+      // Method 2: Safety fallback — assume animation done after SCROLL_ANIM_MS
+      lockTimer = setTimeout(() => {
+        window.removeEventListener("scrollend", onScrollEnd);
+        onAnimationEnd();
+      }, SCROLL_ANIM_MS);
     };
 
     const move = (direction: number) => {
-      if (isAnimating) return;
+      if (locked) return;
       const stops = getStops();
       if (!stops.length) return;
-
       const currentIdx = getActiveIndex(stops);
       const nextIdx = Math.max(0, Math.min(stops.length - 1, currentIdx + direction));
-      if (nextIdx === currentIdx) {
-        gestureActive = false;
-        return;
-      }
-
-      startScrollTo(nextIdx);
+      if (nextIdx === currentIdx) return;
+      scrollTo(nextIdx);
     };
 
     const wheel = (e: WheelEvent) => {
@@ -292,62 +288,17 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
 
       if (current && current.offsetHeight > innerHeight + 60) {
         const atBottom = scrollPos >= top(current) + current.offsetHeight - innerHeight - 16;
-        const atTop = scrollPos <= top(current) + 16;
+        const atTop    = scrollPos <= top(current) + 16;
         if (e.deltaY > 0 && !atBottom) return;
-        if (e.deltaY < 0 && !atTop) return;
+        if (e.deltaY < 0 && !atTop)    return;
       }
 
       e.preventDefault();
+      lastWheelTime = performance.now();
 
-      const now = performance.now();
-      const absDelta = Math.abs(e.deltaY);
-      const dir = Math.sign(e.deltaY);
+      if (locked) return;
 
-      // Track time between wheel ticks to detect gesture boundaries
-      const timeSinceLastWheel = now - lastWheelTime;
-      lastWheelTime = now;
-
-      // If wheel was idle for 140ms or direction reversed, the previous gesture has ended
-      if (timeSinceLastWheel > 140 || (lastDirection !== 0 && dir !== lastDirection)) {
-        gestureActive = false;
-        accumulatedDelta = 0;
-        lastDeltas = [];
-      } else if (lastDeltas.length >= 4) {
-        // Detect a fresh deliberate user stroke while old inertia was decaying
-        const recentAvg = lastDeltas.slice(-4).reduce((a, b) => a + b, 0) / 4;
-        if (absDelta > recentAvg * 1.8 && absDelta > 30) {
-          gestureActive = false;
-          accumulatedDelta = 0;
-        }
-      }
-
-      lastDeltas.push(absDelta);
-      if (lastDeltas.length > 10) lastDeltas.shift();
-      lastDirection = dir;
-
-      // Reset idle timer: 140ms of silence resets gesture state
-      if (idleTimer) clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        gestureActive = false;
-        accumulatedDelta = 0;
-        lastDeltas = [];
-        lastDirection = 0;
-      }, 140);
-
-      // Rule of 1 section per scroll:
-      // While animating OR while the current scroll gesture is active, do not trigger another section.
-      if (isAnimating || gestureActive) {
-        accumulatedDelta = 0;
-        return;
-      }
-
-      accumulatedDelta += e.deltaY;
-      const SCROLL_THRESHOLD = 60;
-      if (Math.abs(accumulatedDelta) >= SCROLL_THRESHOLD) {
-        gestureActive = true;
-        accumulatedDelta = 0;
-        move(dir);
-      }
+      move(Math.sign(e.deltaY));
     };
 
     const keyboard = (e: KeyboardEvent) => {
@@ -357,9 +308,9 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
       if (current && current.offsetHeight > innerHeight + 60) return;
       if (!["ArrowDown", "ArrowUp", "PageDown", "PageUp", " ", "Home", "End"].includes(e.key)) return;
       e.preventDefault();
-      if (isAnimating) return;
+      if (locked) return;
       if (e.key === "Home" || e.key === "End") {
-        startScrollTo(e.key === "Home" ? 0 : stops.length - 1);
+        scrollTo(e.key === "Home" ? 0 : stops.length - 1);
         return;
       }
       move(["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey) ? -1 : 1);
@@ -375,7 +326,7 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     const touchmove = (e: TouchEvent) => { if (pageTouch && e.touches.length === 1 && Math.abs(e.touches[0].clientY - touchStart) > Math.abs(e.touches[0].clientX - touchX)) e.preventDefault(); };
     const touchend = (e: TouchEvent) => {
       const delta = touchStart - (e.changedTouches[0]?.clientY ?? touchStart);
-      if (pageTouch && Math.abs(delta) > 30 && !isAnimating) {
+      if (pageTouch && Math.abs(delta) > TOUCH_THRESHOLD && !locked) {
         move(Math.sign(delta));
       }
       pageTouch = false;
@@ -401,8 +352,8 @@ export function SectionScroll({ children, className = "" }: { children: ReactNod
     window.addEventListener("keydown", keyboard);
 
     return () => {
-      if (idleTimer) clearTimeout(idleTimer);
-      if (finishTimer) clearTimeout(finishTimer);
+      if (idleTimer)  clearTimeout(idleTimer);
+      if (lockTimer) clearTimeout(lockTimer);
       window.removeEventListener("touchstart", touchstart);
       window.removeEventListener("touchmove", touchmove);
       window.removeEventListener("touchend", touchend);
