@@ -319,14 +319,13 @@ export function BookingCalendar({ locale, onClose }: BookingCalendarProps) {
         )}
       </div>
 
-      {/* Time Slots (1 hour between each: 9am to 5pm ET) */}
+      {/* Time Slots (9am to 5pm ET) */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="flex items-center gap-1.5 text-xs font-semibold">
             <Clock className="size-3.5 text-[var(--tech-green)]" />
             {ar ? "المواعيد المتاحة (٩ ص – ٥ م بتوقيت ET)" : "Available Time Slots (9 AM – 5 PM ET)"}
           </Label>
-          <span className="text-[11px] text-muted-foreground">1-Hour Intervals</span>
         </div>
 
         <div className="grid grid-cols-3 gap-2 p-1.5 rounded-xl border border-border bg-card/60">
