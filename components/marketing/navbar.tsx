@@ -3,7 +3,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Lock, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 
 import { LeadButton } from "./experience";
@@ -22,7 +22,6 @@ export function Navbar({ dict, locale }: NavbarProps) {
   const [open, setOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
-  const loginUrl = "/login";
 
   const NAV_LINKS = useMemo(
     () => [
@@ -66,18 +65,6 @@ export function Navbar({ dict, locale }: NavbarProps) {
         <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle variant="ghost" labels={dict.platform.theme} />
           <LocaleSwitcher locale={locale} dict={dict.langSwitcher} />
-
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Link href={loginUrl}>
-              <Lock />
-              {dict.nav.clientPortal}
-            </Link>
-          </Button>
 
           <LeadButton mode="booking">
             {dict.nav.bookConsultation}
@@ -125,12 +112,6 @@ export function Navbar({ dict, locale }: NavbarProps) {
                   {dict.nav.bookConsultation}
                 </LeadButton>
               </div>
-
-              <Button asChild variant="outline" size="lg">
-                <Link href={loginUrl} onClick={() => setOpen(false)}>
-                  {dict.nav.clientPortal}
-                </Link>
-              </Button>
             </div>
           </div>
         </div>
